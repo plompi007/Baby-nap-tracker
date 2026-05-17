@@ -1,0 +1,3139 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מעקב שינה — תינוק</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #f5f7fa;
+  --s1:      #ffffff;
+  --s2:      #ffffff;
+  --s3:      #f0f3f8;
+  --border:  #e4e9f2;
+  --border2: #d0d8e8;
+
+  --moon:  #4a7ee8;
+  --sun:   #e8952a;
+  --yawn:  #8b5cf6;
+  --cry:   #ef4444;
+  --poop:  #92621a;
+  --feed:  #10b981;
+
+  --text:  #1a2035;
+  --muted: #6b7a9a;
+  --dim:   #9aa3b8;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
+  --shadow:    0 4px 12px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.04);
+  --shadow-lg: 0 12px 32px rgba(0,0,0,.12), 0 4px 8px rgba(0,0,0,.06);
+
+  --r: 16px;
+  --r-sm: 10px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Rubik', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ═══ LAYOUT ═══ */
+.app { display: flex; flex-direction: column; min-height: 100vh; }
+
+/* ═══ HEADER ═══ */
+.header {
+  background: var(--s1);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: var(--shadow-sm);
+}
+
+.header-left { display: flex; align-items: center; gap: 14px; }
+
+.moon-icon {
+  width: 38px; height: 38px;
+  background: linear-gradient(135deg, #e8f0fd, #d0e2fb);
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  box-shadow: var(--shadow-sm);
+}
+
+.header-title { font-size: 17px; font-weight: 600; color: var(--text); }
+.header-sub   { font-size: 12px; color: var(--muted); margin-top: 1px; font-family: 'DM Mono', monospace; }
+
+.header-now {
+  background: var(--s3);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-family: 'DM Mono', monospace;
+  color: var(--muted);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ═══ NAV ═══ */
+.nav {
+  background: var(--s1);
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+  display: flex;
+  gap: 0;
+}
+
+.nav-btn {
+  padding: 13px 18px;
+  font-family: 'Rubik', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color .2s, border-color .2s;
+  white-space: nowrap;
+}
+.nav-btn:hover { color: var(--text); }
+.nav-btn.active { color: var(--moon); border-bottom-color: var(--moon); font-weight: 600; }
+
+/* ═══ MAIN ═══ */
+.content { flex: 1; padding: 24px; max-width: 1000px; margin: 0 auto; width: 100%; }
+
+.page { display: none; animation: fadeIn .25s ease; }
+.page.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* ═══ ADD PANEL ═══ */
+.add-panel {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  box-shadow: var(--shadow-sm);
+}
+
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field label { font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+
+.field input, .field select {
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  padding: 8px 11px;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+  min-width: 0;
+}
+.field input:focus, .field select:focus { border-color: var(--moon); box-shadow: 0 0 0 3px rgba(74,126,232,.12); }
+.field select option { background: var(--s1); }
+
+.btn-add {
+  background: var(--moon);
+  color: #fff;
+  border: none;
+  border-radius: var(--r-sm);
+  padding: 9px 20px;
+  font-family: 'Rubik', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity .2s, transform .1s;
+  white-space: nowrap;
+}
+.btn-add:hover { opacity: .85; }
+.btn-add:active { transform: scale(.97); }
+
+.btn-now {
+  background: var(--s3);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: all .2s;
+  margin-top: 4px;
+  display: block;
+  width: 100%;
+  text-align: center;
+}
+.btn-now:hover { color: var(--moon); border-color: var(--moon); background: rgba(74,126,232,.06); }
+
+/* ═══ STAT CARDS ═══ */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 18px 16px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow .2s, transform .2s;
+}
+.stat-card:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  border-radius: var(--r) var(--r) 0 0;
+}
+.stat-card.c-moon::before  { background: linear-gradient(90deg, var(--moon), #7aa8f5); }
+.stat-card.c-sun::before   { background: linear-gradient(90deg, var(--sun), #f5c47a); }
+.stat-card.c-yawn::before  { background: linear-gradient(90deg, var(--yawn), #b08af5); }
+.stat-card.c-feed::before  { background: linear-gradient(90deg, var(--feed), #5ee8b8); }
+
+.stat-icon { font-size: 20px; margin-bottom: 10px; }
+.stat-val  { font-size: 26px; font-weight: 700; font-family: 'DM Mono', monospace; line-height: 1; margin-bottom: 4px; }
+.stat-lbl  { font-size: 11px; color: var(--muted); font-weight: 500; }
+.stat-sub  { font-size: 10px; color: var(--dim); margin-top: 3px; font-family: 'DM Mono', monospace; }
+
+.stat-card.c-moon .stat-val  { color: var(--moon); }
+.stat-card.c-sun .stat-val   { color: var(--sun); }
+.stat-card.c-yawn .stat-val  { color: var(--yawn); }
+.stat-card.c-feed .stat-val  { color: var(--feed); }
+
+/* ═══ SECTION HEADERS ═══ */
+.section-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  margin-top: 28px;
+}
+.section-hdr:first-child { margin-top: 0; }
+.section-hdr h2 { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; }
+
+/* ═══ DAY CARD ═══ */
+.day-card {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  margin-bottom: 10px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow .2s;
+}
+.day-card:hover { box-shadow: var(--shadow); }
+
+.day-card-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid transparent;
+  cursor: pointer;
+  user-select: none;
+  transition: background .15s;
+}
+.day-card.open .day-card-hdr { border-bottom-color: var(--border); }
+.day-card-hdr:hover { background: var(--bg); }
+
+.day-title { font-size: 14px; font-weight: 600; }
+.day-meta  { display: flex; gap: 8px; align-items: center; }
+
+.pill {
+  font-size: 11px;
+  font-family: 'DM Mono', monospace;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-weight: 500;
+}
+.pill-moon  { background: #eff6ff; color: #2563eb; }
+.pill-sun   { background: #fff7ed; color: #c27e1a; }
+.pill-yawn  { background: #f5f3ff; color: #7c3aed; }
+.pill-ok    { background: #ecfdf5; color: #059669; }
+.pill-short { background: #fff7ed; color: #c27e1a; }
+.pill-long  { background: #fef2f2; color: #dc2626; }
+
+.chevron { color: var(--muted); font-size: 12px; transition: transform .25s; }
+.day-card.open .chevron { transform: rotate(180deg); }
+
+.day-body { display: none; }
+.day-card.open .day-body { display: block; }
+
+/* ═══ EVENT TABLE ═══ */
+.ev-table { width: 100%; border-collapse: collapse; }
+
+.ev-table th {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  padding: 8px 18px;
+  text-align: right;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.ev-table td {
+  padding: 11px 18px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.ev-table tr:last-child td { border-bottom: none; }
+.ev-table tr:hover td { background: rgba(74,126,232,.04); }
+
+.time-cell {
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.event-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.ev-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.ev-dot-sleep { background: var(--moon); }
+.ev-dot-wake  { background: var(--sun); }
+.ev-dot-yawn  { background: var(--yawn); }
+.ev-dot-cry   { background: var(--cry); }
+.ev-dot-poop  { background: var(--poop); }
+.ev-dot-feed  { background: var(--feed); }
+
+.info-chip {
+  font-size: 11px;
+  font-family: 'DM Mono', monospace;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+.ic-ww-short { background: #fff7ed; color: #c27e1a; border: 1px solid #fde7b4; }
+.ic-ww-ok    { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+.ic-ww-long  { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+.ic-dur      { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+
+.del-btn {
+  background: none;
+  border: none;
+  color: var(--dim);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: color .15s, background .15s;
+  line-height: 1;
+}
+.del-btn:hover { color: var(--cry); background: rgba(245,97,122,.1); }
+
+.note-text { font-size: 11px; color: var(--muted); }
+
+/* ═══ TIMELINE ═══ */
+.tl-wrap { padding: 14px 16px; }
+.tl-label { font-size: 10px; color: var(--muted); margin-bottom: 6px; font-family: 'DM Mono', monospace; }
+
+.tl-bar {
+  position: relative;
+  height: 28px;
+  background: var(--bg);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  overflow: visible;
+  margin-bottom: 4px;
+}
+
+.tl-seg {
+  position: absolute;
+  top: 0; height: 100%;
+  border-radius: 0;
+}
+.tl-seg:first-child { border-radius: 5px 0 0 5px; }
+.tl-seg:last-of-type { border-radius: 0 5px 5px 0; }
+.tl-seg.s-sleep { background: rgba(74,126,232,.5); }
+.tl-seg.s-wake  { background: rgba(232,149,42,.18); }
+
+.tl-dot {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  z-index: 2;
+  cursor: pointer;
+  transition: transform .15s;
+  box-shadow: 0 0 0 2px #fff;
+}
+.tl-dot:hover { transform: translate(-50%, -50%) scale(1.6); }
+.tl-dot.d-yawn { background: var(--yawn); }
+.tl-dot.d-cry  { background: var(--cry); }
+.tl-dot.d-poop { background: var(--poop); }
+.tl-dot.d-feed { background: var(--feed); }
+
+.tl-hours {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: var(--dim);
+  font-family: 'DM Mono', monospace;
+  padding: 0 2px;
+}
+
+/* ═══ STATS PAGE ═══ */
+.stats-full-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+/* WW distribution bar */
+.ww-dist {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 20px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.ww-dist h3 { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 16px; }
+
+.ww-bar-wrap { margin-bottom: 14px; }
+.ww-bar-label {
+  display: flex; justify-content: space-between;
+  font-size: 11px; color: var(--muted); margin-bottom: 5px;
+}
+.ww-bar-track {
+  height: 8px;
+  background: var(--bg);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.ww-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width .6s ease;
+}
+
+.insight-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.insight-card {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 16px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow .2s;
+}
+.insight-card:hover { box-shadow: var(--shadow); }
+
+.insight-icon {
+  width: 34px; height: 34px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.ii-moon  { background: #eff6ff; }
+.ii-sun   { background: #fff7ed; }
+.ii-yawn  { background: #f5f3ff; }
+.ii-warn  { background: #fef2f2; }
+.ii-ok    { background: #ecfdf5; }
+
+.insight-text { flex: 1; }
+.insight-title { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+.insight-body  { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+/* Per-day table */
+.per-day-table {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.per-day-table table { width: 100%; border-collapse: collapse; }
+.per-day-table th {
+  font-size: 10px; font-weight: 700; color: var(--dim);
+  text-transform: uppercase; letter-spacing: .07em;
+  padding: 10px 16px; text-align: right;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.per-day-table td {
+  padding: 10px 16px; font-size: 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.per-day-table tr:last-child td { border-bottom: none; }
+.per-day-table tr:hover td { background: rgba(74,126,232,.04); }
+
+/* ═══ HEATMAP ═══ */
+.heatmap-wrap {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 20px;
+  margin-bottom: 12px;
+  overflow-x: auto;
+}
+.heatmap-wrap h3 {
+  font-size: 12px; font-weight: 600; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .07em; margin-bottom: 4px;
+}
+.heatmap-sub {
+  font-size: 11px; color: var(--dim); margin-bottom: 16px;
+  font-family: 'DM Mono', monospace;
+}
+.heatmap-chart {
+  position: relative;
+  width: 100%;
+  min-width: 320px;
+}
+.heatmap-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 3px;
+}
+.heatmap-label {
+  font-size: 10px;
+  font-family: 'DM Mono', monospace;
+  color: var(--muted);
+  width: 38px;
+  flex-shrink: 0;
+  text-align: left;
+}
+.heatmap-cells {
+  display: flex;
+  flex: 1;
+  gap: 2px;
+}
+.heatmap-cell {
+  flex: 1;
+  height: 20px;
+  border-radius: 3px;
+  position: relative;
+  cursor: pointer;
+  transition: transform .1s;
+}
+.heatmap-cell:hover { transform: scaleY(1.3); z-index: 1; }
+
+.heatmap-x-labels {
+  display: flex;
+  margin-right: 0;
+  margin-top: 6px;
+  padding-right: 38px; /* offset for row label width */
+}
+.heatmap-x-label {
+  flex: 1;
+  font-size: 9px;
+  font-family: 'DM Mono', monospace;
+  color: var(--dim);
+  text-align: center;
+}
+
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.legend-gradient {
+  flex: 1;
+  max-width: 160px;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(to left, rgba(91,141,238,.85), rgba(91,141,238,.05));
+}
+.legend-gradient-wake {
+  flex: 1;
+  max-width: 160px;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(to left, rgba(245,167,66,.85), rgba(245,167,66,.05));
+}
+
+/* ═══ EMPTY ═══ */
+.empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.empty-icon { font-size: 40px; margin-bottom: 12px; opacity: .5; }
+
+/* ═══ MINI CLOCK ═══ */
+#live-clock { transition: color .2s; }
+
+/* ═══ EDIT MODAL ═══ */
+.modal-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(26,32,53,.4);
+  backdrop-filter: blur(6px);
+  z-index: 500;
+  align-items: center;
+  justify-content: center;
+}
+.modal-backdrop.open { display: flex; }
+
+.modal {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 24px;
+  width: 360px;
+  max-width: 95vw;
+  box-shadow: var(--shadow-lg);
+  animation: modalIn .2s ease;
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(.95) translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.modal-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.modal-hdr h3 { font-size: 15px; font-weight: 600; color: var(--text); }
+.modal-close {
+  background: var(--bg); border: 1px solid var(--border); color: var(--muted);
+  font-size: 18px; cursor: pointer; padding: 2px 6px;
+  border-radius: 6px; line-height: 1;
+  transition: color .15s, background .15s;
+}
+.modal-close:hover { color: var(--cry); background: rgba(245,97,122,.1); }
+
+.modal-field { margin-bottom: 14px; }
+.modal-field label {
+  display: block; font-size: 11px; font-weight: 600;
+  color: var(--muted); text-transform: uppercase;
+  letter-spacing: .05em; margin-bottom: 5px;
+}
+.modal-field input, .modal-field select {
+  width: 100%;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 14px;
+  padding: 10px 12px;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.modal-field input:focus, .modal-field select:focus { border-color: var(--moon); box-shadow: 0 0 0 3px rgba(74,126,232,.12); }
+.modal-field select option { background: var(--s1); }
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+}
+.btn-save {
+  flex: 1;
+  background: var(--moon);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px;
+  font-family: 'Rubik', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity .2s;
+}
+.btn-save:hover { opacity: .85; }
+.btn-cancel {
+  background: var(--s3);
+  border: 1px solid var(--border2);
+  color: var(--muted);
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-family: 'Rubik', sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+  transition: color .15s;
+}
+.btn-cancel:hover { color: var(--text); }
+
+/* edit button in table */
+.edit-btn {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #2563eb;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background .15s;
+  line-height: 1;
+}
+.edit-btn:hover { background: #dbeafe; }
+.del-btn {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background .15s;
+  line-height: 1;
+}
+.del-btn:hover { background: #fee2e2; }
+.row-actions { display: flex; gap: 4px; align-items: center; }
+
+/* ═══ SCROLL BAR ═══ */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* ═══ RESPONSIVE ═══ */
+/* ═══ MOBILE FAB (floating add button) ═══ */
+.fab {
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  background: var(--moon);
+  color: #fff;
+  font-size: 24px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(91,141,238,.45);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+  transition: transform .15s, box-shadow .15s;
+}
+.fab:active { transform: scale(.92); }
+
+/* mobile add sheet */
+.add-sheet-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(26,32,53,.35);
+  backdrop-filter: blur(4px);
+  z-index: 300;
+  align-items: flex-end;
+  justify-content: center;
+}
+.add-sheet-backdrop.open { display: flex; }
+
+.add-sheet {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 24px 24px 0 0;
+  box-shadow: 0 -8px 32px rgba(0,0,0,.12);
+  padding: 20px 20px 32px;
+  width: 100%;
+  max-width: 480px;
+  animation: sheetUp .25s ease;
+}
+@keyframes sheetUp {
+  from { transform: translateY(100%); }
+  to   { transform: none; }
+}
+
+.add-sheet-hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 18px;
+}
+.add-sheet-hdr h3 { font-size: 16px; font-weight: 600; }
+.sheet-close {
+  background: var(--bg); border: 1px solid var(--border); color: var(--muted);
+  width: 30px; height: 30px; border-radius: 50%; font-size: 16px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+
+.sheet-field { margin-bottom: 14px; }
+.sheet-field label {
+  display: block; font-size: 11px; font-weight: 600;
+  color: var(--muted); text-transform: uppercase;
+  letter-spacing: .05em; margin-bottom: 5px;
+}
+.sheet-field input, .sheet-field select {
+  width: 100%;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 16px;
+  padding: 12px 14px;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.sheet-field input:focus, .sheet-field select:focus { border-color: var(--moon); box-shadow: 0 0 0 3px rgba(74,126,232,.12); }
+
+.sheet-row { display: flex; gap: 10px; }
+.sheet-row .sheet-field { flex: 1; }
+
+.btn-now-sheet {
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  color: var(--moon);
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 13px;
+  font-family: 'Rubik', sans-serif;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 2px;
+  transition: background .15s;
+}
+.btn-now-sheet:hover { background: rgba(91,141,238,.15); }
+
+.btn-add-sheet {
+  width: 100%;
+  background: var(--moon);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 14px;
+  font-family: 'Rubik', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: opacity .2s;
+}
+.btn-add-sheet:active { opacity: .85; }
+
+/* event type grid for mobile */
+.type-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.type-btn {
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  color: var(--muted);
+  font-family: 'Rubik', sans-serif;
+  font-size: 13px;
+  padding: 12px 6px;
+  cursor: pointer;
+  text-align: center;
+  transition: all .15s;
+  line-height: 1.4;
+}
+.type-btn .type-icon { font-size: 22px; display: block; margin-bottom: 3px; }
+.type-btn.selected {
+  background: #eff6ff;
+  border-color: var(--moon);
+  color: var(--moon);
+  box-shadow: 0 0 0 2px rgba(74,126,232,.15);
+}
+
+@media (max-width: 640px) {
+  /* hide desktop add panel, show FAB */
+  .add-panel { display: none; }
+  .fab { display: flex; }
+
+  .content { padding: 12px 12px 80px; }
+
+  .header { padding: 12px 16px; }
+  .header-now { display: none; }
+  .header-title { font-size: 15px; }
+
+  .nav { padding: 0 8px; gap: 0; }
+  .nav-btn { padding: 12px 10px; font-size: 12px; flex: 1; text-align: center; }
+
+  /* stats: 2 columns */
+  .stats-grid,
+  .stats-full-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .stat-val { font-size: 20px; }
+  .stat-card { padding: 14px 12px; }
+
+  /* insight cards: single column */
+  .insight-cards { grid-template-columns: 1fr; }
+
+  /* day card */
+  .day-title { font-size: 13px; }
+  .day-meta { gap: 4px; }
+  .pill { font-size: 10px; padding: 2px 7px; }
+
+  /* table: hide info column, shrink */
+  .ev-table th:nth-child(4),
+  .ev-table td:nth-child(4) { display: none; }
+  .ev-table th, .ev-table td { padding: 8px 10px; }
+  .ev-table { font-size: 12px; }
+  .time-cell { font-size: 12px; }
+
+  /* per-day stats table: hide last two cols */
+  .per-day-table th:nth-child(4),
+  .per-day-table td:nth-child(4),
+  .per-day-table th:nth-child(5),
+  .per-day-table td:nth-child(5) { display: none; }
+
+  /* timeline bar taller for touch */
+  .tl-bar { height: 32px; }
+  .tl-dot { width: 12px; height: 12px; }
+
+  /* modal full-width on mobile */
+  .modal {
+    width: 100%;
+    border-radius: 20px 20px 0 0;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
+  .modal-backdrop { align-items: flex-end; }
+
+  /* section headers smaller */
+  .section-hdr h2 { font-size: 11px; }
+
+  /* ww dist */
+  .ww-dist { padding: 14px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-left">
+    <div class="moon-icon">🌙</div>
+    <div>
+      <div class="header-title">מעקב שינה</div>
+      <div class="header-sub" id="baby-age">טוען גיל...</div>
+      <div style="font-size:10px;font-family:'DM Mono',monospace;margin-top:1px" id="sync-status">⏳ מתחבר...</div>
+    </div>
+  </div>
+  <div class="header-now" id="live-clock">--:--</div>
+</header>
+
+<!-- NAV -->
+<nav class="nav">
+  <button class="nav-btn active" onclick="nav('dashboard')">📊 דשבורד</button>
+  <button class="nav-btn" onclick="nav('log')">📋 יומן</button>
+  <button class="nav-btn" onclick="nav('stats')">📈 סטטיסטיקות</button>
+</nav>
+
+<!-- FAB for mobile -->
+<button class="fab" id="fab-btn" onclick="openAddSheet()">+</button>
+
+<!-- Mobile Add Sheet -->
+<div class="add-sheet-backdrop" id="add-sheet" onclick="closeAddSheetBackdrop(event)">
+  <div class="add-sheet">
+    <div class="add-sheet-hdr">
+      <h3>➕ רשומה חדשה</h3>
+      <button class="sheet-close" onclick="closeAddSheet()">✕</button>
+    </div>
+
+    <!-- Event type grid -->
+    <div style="margin-bottom:6px">
+      <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">אירוע</div>
+      <div class="type-grid" id="type-grid">
+        <button class="type-btn selected" onclick="selectType('wake',this)"><span class="type-icon">☀️</span>קימה</button>
+        <button class="type-btn" onclick="selectType('yawn',this)"><span class="type-icon">😮</span>פיהוק</button>
+        <button class="type-btn" onclick="selectType('sleep',this)"><span class="type-icon">🌙</span>הרדמות</button>
+        <button class="type-btn" onclick="selectType('feed',this)"><span class="type-icon">🤱</span>ינק</button>
+        <button class="type-btn" onclick="selectType('cry',this)"><span class="type-icon">😢</span>בכי</button>
+        <button class="type-btn" onclick="selectType('poop',this)"><span class="type-icon">💩</span>קקי</button>
+      </div>
+    </div>
+
+    <div class="sheet-row">
+      <div class="sheet-field">
+        <label>תאריך</label>
+        <input type="date" id="sheet-date">
+      </div>
+      <div class="sheet-field">
+        <label>שעה</label>
+        <input type="time" id="sheet-time">
+      </div>
+    </div>
+    <button class="btn-now-sheet" onclick="setNowSheet()">⏱ עכשיו</button>
+
+    <div class="sheet-field" style="margin-top:12px">
+      <label>הערה (אופציונלי)</label>
+      <input type="text" id="sheet-note" placeholder="מנשא, אוטו...">
+    </div>
+
+    <button class="btn-add-sheet" onclick="addEntrySheet()">הוסף</button>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- ADD PANEL (visible on all pages) -->
+  <div class="add-panel" id="add-panel">
+    <div class="field">
+      <label>תאריך</label>
+      <input type="date" id="inp-date">
+    </div>
+    <div class="field">
+      <label>שעה</label>
+      <input type="time" id="inp-time">
+      <button class="btn-now" onclick="setNow()">⏱ עכשיו</button>
+    </div>
+    <div class="field">
+      <label>אירוע</label>
+      <select id="inp-type">
+        <option value="wake">☀️ קימה</option>
+        <option value="yawn">😮 פיהוק ראשון</option>
+        <option value="sleep">🌙 הרדמות</option>
+        <option value="feed">🤱 ינק</option>
+        <option value="cry">😢 בכי</option>
+        <option value="poop">💩 קקי</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>הערה</label>
+      <input type="text" id="inp-note" placeholder="מנשא, אוטו...">
+    </div>
+    <button class="btn-add" onclick="addEntry()">+ הוסף</button>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="page-dashboard" class="page active">
+    <div class="stats-grid" id="dash-stats"></div>
+    <div class="section-hdr"><h2>🌙 ציר הזמן — היום האחרון</h2></div>
+    <div id="dash-timeline"></div>
+    <div class="section-hdr"><h2>💡 תובנות</h2></div>
+    <div class="insight-cards" id="dash-insights"></div>
+    <div class="section-hdr">
+      <h2>📋 רשומות אחרונות</h2>
+    </div>
+    <div id="dash-recent"></div>
+  </div>
+
+  <!-- LOG -->
+  <div id="page-log" class="page">
+    <div id="log-content"></div>
+  </div>
+
+  <!-- STATS -->
+  <div id="page-stats" class="page">
+    <div class="stats-full-grid" id="stats-cards"></div>
+    <div class="section-hdr"><h2>🌡️ מפת חום — שינה לפי שעה</h2></div>
+    <div id="heatmap-sleep"></div>
+    <div class="section-hdr"><h2>☀️ מפת חום — ערות לפי שעה</h2></div>
+    <div id="heatmap-wake"></div>
+    <div class="section-hdr"><h2>📊 חלוני ערות</h2></div>
+    <div class="ww-dist" id="ww-dist"></div>
+    <div class="section-hdr"><h2>📅 פירוט לפי יום</h2></div>
+    <div class="per-day-table" id="per-day"></div>
+  </div>
+
+</div><!-- /content -->
+</div><!-- /app -->
+
+<!-- EDIT MODAL -->
+<div class="modal-backdrop" id="edit-modal" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h3>✏️ עריכת רשומה</h3>
+      <button class="modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+    <div class="modal-field">
+      <label>תאריך</label>
+      <input type="date" id="edit-date">
+    </div>
+    <div class="modal-field">
+      <label>שעה</label>
+      <input type="time" id="edit-time">
+    </div>
+    <div class="modal-field">
+      <label>אירוע</label>
+      <select id="edit-type">
+        <option value="wake">☀️ קימה</option>
+        <option value="yawn">😮 פיהוק ראשון</option>
+        <option value="sleep">🌙 הרדמות</option>
+        <option value="feed">🤱 ינק</option>
+        <option value="cry">😢 בכי</option>
+        <option value="poop">💩 קקי</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <label>הערה</label>
+      <input type="text" id="edit-note" placeholder="מנשא, אוטו...">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-save" onclick="saveEdit()">שמור</button>
+      <button class="btn-cancel" onclick="closeEditModal()">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAhsemdrVMDnvtvpXaRmNIvz0aCckrmXsI",
+  authDomain: "baby-nap-time.firebaseapp.com",
+  projectId: "baby-nap-time",
+  storageBucket: "baby-nap-time.firebasestorage.app",
+  messagingSenderId: "785269005585",
+  appId: "1:785269005585:web:fd684be9f38edfcd9280b0"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+const COL = "entries";
+
+// ── sync status indicator ──────────────────────────
+function setSyncStatus(status) {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  const map = {
+    ok:      { text: '✓ מסונכרן',   color: 'var(--feed)' },
+    saving:  { text: '⏳ שומר...',   color: 'var(--sun)'  },
+    loading: { text: '⏳ טוען...',   color: 'var(--sun)'  },
+    error:   { text: '⚠️ שגיאה',    color: 'var(--cry)'  },
+  };
+  const s = map[status] || map.ok;
+  el.textContent = s.text;
+  el.style.color = s.color;
+}
+
+// ── seed Firestore once if empty ───────────────────
+async function seedIfEmpty(seedData) {
+  const snap = await getDocs(collection(db, COL));
+  if (!snap.empty) return; // already has data
+  setSyncStatus('saving');
+  const batch = seedData.map(e =>
+    setDoc(doc(db, COL, String(e.id)), e)
+  );
+  await Promise.all(batch);
+  setSyncStatus('ok');
+}
+
+// ── real-time listener ─────────────────────────────
+function startListener() {
+  setSyncStatus('loading');
+  const q = query(collection(db, COL));
+  onSnapshot(q, snap => {
+    entries = snap.docs.map(d => d.data());
+    entries.sort((a,b) => a.d.localeCompare(b.d) || a.t.localeCompare(b.t));
+    setSyncStatus('ok');
+    renderPage(window._currentPage || 'dashboard');
+  }, err => {
+    console.error(err);
+    setSyncStatus('error');
+  });
+}
+
+// ── override save/load/delete to use Firestore ─────
+window._fbAddEntry = async function(entry) {
+  setSyncStatus('saving');
+  await setDoc(doc(db, COL, String(entry.id)), entry);
+  // listener will re-render automatically
+};
+
+window._fbDeleteEntry = async function(id) {
+  setSyncStatus('saving');
+  await deleteDoc(doc(db, COL, String(id)));
+};
+
+window._fbUpdateEntry = async function(entry) {
+  setSyncStatus('saving');
+  await setDoc(doc(db, COL, String(entry.id)), entry);
+};
+
+window._fbReady = true;
+
+// ── init Firebase after main app is ready ─────────
+window.addEventListener('appReady', async () => {
+  await seedIfEmpty(window._SEED);
+  startListener();
+});
+
+</script>
+<script>
+// ════════════════════════════════════
+// DATA
+// ════════════════════════════════════
+const EV = {
+  wake:  { label: '☀️ קימה',      dot: 'ev-dot-wake',  badge: '' },
+  yawn:  { label: '😮 פיהוק',     dot: 'ev-dot-yawn',  badge: '' },
+  sleep: { label: '🌙 הרדמות',    dot: 'ev-dot-sleep', badge: '' },
+  feed:  { label: '🤱 ינק',       dot: 'ev-dot-feed',  badge: '' },
+  cry:   { label: '😢 בכי',       dot: 'ev-dot-cry',   badge: '' },
+  poop:  { label: '💩 קקי',       dot: 'ev-dot-poop',  badge: '' },
+};
+
+const SEED = [
+  {
+    "d": "2025-05-04",
+    "t": "18:45",
+    "type": "wake",
+    "note": "",
+    "id": 1
+  },
+  {
+    "d": "2025-05-04",
+    "t": "19:04",
+    "type": "yawn",
+    "note": "",
+    "id": 2
+  },
+  {
+    "d": "2025-05-04",
+    "t": "19:40",
+    "type": "cry",
+    "note": "מנשא",
+    "id": 3
+  },
+  {
+    "d": "2025-05-04",
+    "t": "20:00",
+    "type": "sleep",
+    "note": "",
+    "id": 4
+  },
+  {
+    "d": "2025-05-05",
+    "t": "06:37",
+    "type": "wake",
+    "note": "",
+    "id": 5
+  },
+  {
+    "d": "2025-05-05",
+    "t": "07:17",
+    "type": "yawn",
+    "note": "",
+    "id": 6
+  },
+  {
+    "d": "2025-05-05",
+    "t": "07:45",
+    "type": "cry",
+    "note": "קיטור",
+    "id": 7
+  },
+  {
+    "d": "2025-05-05",
+    "t": "07:50",
+    "type": "sleep",
+    "note": "מנשא",
+    "id": 8
+  },
+  {
+    "d": "2025-05-05",
+    "t": "09:15",
+    "type": "wake",
+    "note": "",
+    "id": 9
+  },
+  {
+    "d": "2025-05-05",
+    "t": "09:44",
+    "type": "yawn",
+    "note": "",
+    "id": 10
+  },
+  {
+    "d": "2025-05-05",
+    "t": "10:10",
+    "type": "sleep",
+    "note": "אוטו",
+    "id": 11
+  },
+  {
+    "d": "2025-05-05",
+    "t": "11:09",
+    "type": "yawn",
+    "note": "",
+    "id": 12
+  },
+  {
+    "d": "2025-05-05",
+    "t": "11:50",
+    "type": "sleep",
+    "note": "",
+    "id": 13
+  },
+  {
+    "d": "2025-05-05",
+    "t": "13:30",
+    "type": "wake",
+    "note": "",
+    "id": 14
+  },
+  {
+    "d": "2025-05-05",
+    "t": "13:56",
+    "type": "yawn",
+    "note": "",
+    "id": 15
+  },
+  {
+    "d": "2025-05-05",
+    "t": "14:55",
+    "type": "sleep",
+    "note": "",
+    "id": 16
+  },
+  {
+    "d": "2025-05-05",
+    "t": "15:45",
+    "type": "wake",
+    "note": "",
+    "id": 17
+  },
+  {
+    "d": "2025-05-05",
+    "t": "16:06",
+    "type": "yawn",
+    "note": "",
+    "id": 18
+  },
+  {
+    "d": "2025-05-05",
+    "t": "16:30",
+    "type": "cry",
+    "note": "",
+    "id": 19
+  },
+  {
+    "d": "2025-05-05",
+    "t": "17:35",
+    "type": "sleep",
+    "note": "",
+    "id": 20
+  },
+  {
+    "d": "2025-05-05",
+    "t": "17:55",
+    "type": "wake",
+    "note": "ינק",
+    "id": 21
+  },
+  {
+    "d": "2025-05-05",
+    "t": "18:37",
+    "type": "yawn",
+    "note": "",
+    "id": 22
+  },
+  {
+    "d": "2025-05-05",
+    "t": "20:30",
+    "type": "sleep",
+    "note": "",
+    "id": 23
+  },
+  {
+    "d": "2025-05-06",
+    "t": "02:45",
+    "type": "wake",
+    "note": "ינק לילה",
+    "id": 24
+  },
+  {
+    "d": "2025-05-06",
+    "t": "03:17",
+    "type": "sleep",
+    "note": "",
+    "id": 25
+  },
+  {
+    "d": "2025-05-06",
+    "t": "05:41",
+    "type": "wake",
+    "note": "ינק",
+    "id": 26
+  },
+  {
+    "d": "2025-05-06",
+    "t": "08:42",
+    "type": "yawn",
+    "note": "",
+    "id": 27
+  },
+  {
+    "d": "2025-05-06",
+    "t": "09:55",
+    "type": "sleep",
+    "note": "",
+    "id": 28
+  },
+  {
+    "d": "2025-05-06",
+    "t": "10:20",
+    "type": "wake",
+    "note": "",
+    "id": 29
+  },
+  {
+    "d": "2025-05-06",
+    "t": "10:30",
+    "type": "yawn",
+    "note": "",
+    "id": 30
+  },
+  {
+    "d": "2025-05-06",
+    "t": "10:43",
+    "type": "sleep",
+    "note": "",
+    "id": 31
+  },
+  {
+    "d": "2025-05-06",
+    "t": "12:55",
+    "type": "wake",
+    "note": "",
+    "id": 32
+  },
+  {
+    "d": "2025-05-06",
+    "t": "13:35",
+    "type": "sleep",
+    "note": "",
+    "id": 33
+  },
+  {
+    "d": "2025-05-06",
+    "t": "14:10",
+    "type": "wake",
+    "note": "",
+    "id": 34
+  },
+  {
+    "d": "2025-05-06",
+    "t": "14:44",
+    "type": "yawn",
+    "note": "",
+    "id": 35
+  },
+  {
+    "d": "2025-05-06",
+    "t": "15:37",
+    "type": "sleep",
+    "note": "",
+    "id": 36
+  },
+  {
+    "d": "2025-05-06",
+    "t": "16:44",
+    "type": "wake",
+    "note": "",
+    "id": 37
+  },
+  {
+    "d": "2025-05-06",
+    "t": "18:08",
+    "type": "sleep",
+    "note": "",
+    "id": 38
+  },
+  {
+    "d": "2025-05-06",
+    "t": "18:50",
+    "type": "wake",
+    "note": "",
+    "id": 39
+  },
+  {
+    "d": "2025-05-06",
+    "t": "20:28",
+    "type": "sleep",
+    "note": "",
+    "id": 40
+  },
+  {
+    "d": "2025-05-07",
+    "t": "04:30",
+    "type": "wake",
+    "note": "ינק לילה",
+    "id": 41
+  },
+  {
+    "d": "2025-05-07",
+    "t": "05:00",
+    "type": "sleep",
+    "note": "",
+    "id": 42
+  },
+  {
+    "d": "2025-05-07",
+    "t": "07:48",
+    "type": "wake",
+    "note": "",
+    "id": 43
+  },
+  {
+    "d": "2025-05-07",
+    "t": "08:15",
+    "type": "yawn",
+    "note": "",
+    "id": 44
+  },
+  {
+    "d": "2025-05-07",
+    "t": "09:08",
+    "type": "sleep",
+    "note": "",
+    "id": 45
+  },
+  {
+    "d": "2025-05-07",
+    "t": "10:08",
+    "type": "wake",
+    "note": "",
+    "id": 46
+  },
+  {
+    "d": "2025-05-07",
+    "t": "11:34",
+    "type": "sleep",
+    "note": "",
+    "id": 47
+  },
+  {
+    "d": "2025-05-07",
+    "t": "12:23",
+    "type": "wake",
+    "note": "",
+    "id": 48
+  },
+  {
+    "d": "2025-05-07",
+    "t": "14:45",
+    "type": "sleep",
+    "note": "",
+    "id": 49
+  },
+  {
+    "d": "2025-05-07",
+    "t": "15:32",
+    "type": "wake",
+    "note": "",
+    "id": 50
+  },
+  {
+    "d": "2025-05-07",
+    "t": "17:43",
+    "type": "sleep",
+    "note": "",
+    "id": 51
+  },
+  {
+    "d": "2025-05-07",
+    "t": "22:35",
+    "type": "wake",
+    "note": "ינק וקקי",
+    "id": 52
+  },
+  {
+    "d": "2025-05-07",
+    "t": "23:34",
+    "type": "sleep",
+    "note": "",
+    "id": 53
+  },
+  {
+    "d": "2025-05-08",
+    "t": "03:30",
+    "type": "wake",
+    "note": "ינק לילה",
+    "id": 54
+  },
+  {
+    "d": "2025-05-08",
+    "t": "04:15",
+    "type": "sleep",
+    "note": "",
+    "id": 55
+  },
+  {
+    "d": "2025-05-08",
+    "t": "06:42",
+    "type": "wake",
+    "note": "ינק + פוקים",
+    "id": 56
+  },
+  {
+    "d": "2025-05-08",
+    "t": "08:11",
+    "type": "sleep",
+    "note": "",
+    "id": 57
+  },
+  {
+    "d": "2025-05-08",
+    "t": "08:47",
+    "type": "wake",
+    "note": "",
+    "id": 58
+  },
+  {
+    "d": "2025-05-08",
+    "t": "09:45",
+    "type": "sleep",
+    "note": "",
+    "id": 59
+  },
+  {
+    "d": "2025-05-08",
+    "t": "13:05",
+    "type": "wake",
+    "note": "",
+    "id": 60
+  },
+  {
+    "d": "2025-05-08",
+    "t": "14:04",
+    "type": "sleep",
+    "note": "",
+    "id": 61
+  },
+  {
+    "d": "2025-05-08",
+    "t": "14:23",
+    "type": "wake",
+    "note": "",
+    "id": 62
+  },
+  {
+    "d": "2025-05-08",
+    "t": "14:44",
+    "type": "yawn",
+    "note": "",
+    "id": 63
+  },
+  {
+    "d": "2025-05-08",
+    "t": "16:10",
+    "type": "sleep",
+    "note": "",
+    "id": 64
+  },
+  {
+    "d": "2025-05-08",
+    "t": "17:09",
+    "type": "wake",
+    "note": "ינק",
+    "id": 65
+  },
+  {
+    "d": "2025-05-08",
+    "t": "17:48",
+    "type": "yawn",
+    "note": "",
+    "id": 66
+  },
+  {
+    "d": "2025-05-08",
+    "t": "18:20",
+    "type": "sleep",
+    "note": "",
+    "id": 67
+  },
+  {
+    "d": "2025-05-08",
+    "t": "19:00",
+    "type": "wake",
+    "note": "",
+    "id": 68
+  },
+  {
+    "d": "2025-05-08",
+    "t": "21:00",
+    "type": "sleep",
+    "note": "",
+    "id": 69
+  },
+  {
+    "d": "2025-05-09",
+    "t": "05:25",
+    "type": "wake",
+    "note": "ינק לילה",
+    "id": 70
+  },
+  {
+    "d": "2025-05-09",
+    "t": "05:45",
+    "type": "sleep",
+    "note": "",
+    "id": 71
+  },
+  {
+    "d": "2025-05-09",
+    "t": "08:30",
+    "type": "wake",
+    "note": "",
+    "id": 72
+  },
+  {
+    "d": "2025-05-09",
+    "t": "09:00",
+    "type": "yawn",
+    "note": "",
+    "id": 73
+  },
+  {
+    "d": "2025-05-09",
+    "t": "10:14",
+    "type": "sleep",
+    "note": "",
+    "id": 74
+  },
+  {
+    "d": "2025-05-09",
+    "t": "10:52",
+    "type": "wake",
+    "note": "קקי",
+    "id": 75
+  },
+  {
+    "d": "2025-05-09",
+    "t": "11:24",
+    "type": "yawn",
+    "note": "",
+    "id": 76
+  },
+  {
+    "d": "2025-05-09",
+    "t": "19:40",
+    "type": "sleep",
+    "note": "",
+    "id": 77
+  },
+  {
+    "d": "2025-05-10",
+    "t": "02:25",
+    "type": "wake",
+    "note": "ינק לילה",
+    "id": 78
+  },
+  {
+    "d": "2025-05-10",
+    "t": "02:55",
+    "type": "sleep",
+    "note": "",
+    "id": 79
+  },
+  {
+    "d": "2025-05-10",
+    "t": "07:14",
+    "type": "wake",
+    "note": "",
+    "id": 80
+  },
+  {
+    "d": "2025-05-10",
+    "t": "07:30",
+    "type": "poop",
+    "note": "",
+    "id": 81
+  },
+  {
+    "d": "2025-05-10",
+    "t": "08:12",
+    "type": "yawn",
+    "note": "",
+    "id": 82
+  },
+  {
+    "d": "2025-05-10",
+    "t": "08:40",
+    "type": "sleep",
+    "note": "",
+    "id": 83
+  },
+  {
+    "d": "2025-05-10",
+    "t": "10:40",
+    "type": "wake",
+    "note": "",
+    "id": 84
+  },
+  {
+    "d": "2025-05-10",
+    "t": "10:50",
+    "type": "poop",
+    "note": "קקי בכיור",
+    "id": 85
+  },
+  {
+    "d": "2025-05-10",
+    "t": "11:40",
+    "type": "yawn",
+    "note": "",
+    "id": 86
+  },
+  {
+    "d": "2025-05-10",
+    "t": "12:05",
+    "type": "sleep",
+    "note": "",
+    "id": 87
+  },
+  {
+    "d": "2025-05-10",
+    "t": "12:53",
+    "type": "wake",
+    "note": "",
+    "id": 88
+  },
+  {
+    "d": "2025-05-10",
+    "t": "13:10",
+    "type": "poop",
+    "note": "קקי בכיור",
+    "id": 89
+  },
+  {
+    "d": "2025-05-10",
+    "t": "13:20",
+    "type": "yawn",
+    "note": "",
+    "id": 90
+  },
+  {
+    "d": "2025-05-10",
+    "t": "15:00",
+    "type": "sleep",
+    "note": "",
+    "id": 91
+  },
+  {
+    "d": "2025-05-10",
+    "t": "15:27",
+    "type": "wake",
+    "note": "",
+    "id": 92
+  },
+  {
+    "d": "2025-05-10",
+    "t": "15:45",
+    "type": "sleep",
+    "note": "",
+    "id": 93
+  },
+  {
+    "d": "2025-05-10",
+    "t": "16:50",
+    "type": "wake",
+    "note": "",
+    "id": 94
+  },
+  {
+    "d": "2025-05-10",
+    "t": "20:15",
+    "type": "sleep",
+    "note": "",
+    "id": 95
+  },
+  {
+    "d": "2025-05-11",
+    "t": "05:30",
+    "type": "wake",
+    "note": "ינק לילה",
+    "id": 96
+  },
+  {
+    "d": "2025-05-11",
+    "t": "06:00",
+    "type": "sleep",
+    "note": "",
+    "id": 97
+  },
+  {
+    "d": "2025-05-11",
+    "t": "09:55",
+    "type": "wake",
+    "note": "",
+    "id": 98
+  },
+  {
+    "d": "2025-05-11",
+    "t": "12:45",
+    "type": "sleep",
+    "note": "",
+    "id": 99
+  },
+  {
+    "d": "2025-05-11",
+    "t": "13:00",
+    "type": "wake",
+    "note": "קקי",
+    "id": 100
+  },
+  {
+    "d": "2025-05-11",
+    "t": "14:45",
+    "type": "sleep",
+    "note": "",
+    "id": 101
+  },
+  {
+    "d": "2025-05-11",
+    "t": "17:09",
+    "type": "wake",
+    "note": "",
+    "id": 102
+  },
+  {
+    "d": "2025-05-11",
+    "t": "19:18",
+    "type": "sleep",
+    "note": "",
+    "id": 103
+  },
+  {
+    "d": "2025-05-11",
+    "t": "20:05",
+    "type": "wake",
+    "note": "",
+    "id": 104
+  },
+  {
+    "d": "2025-05-11",
+    "t": "20:45",
+    "type": "sleep",
+    "note": "",
+    "id": 105
+  },
+  {
+    "d": "2025-05-12",
+    "t": "03:30",
+    "type": "wake",
+    "note": "ינק לילה + קקי",
+    "id": 106
+  },
+  {
+    "d": "2025-05-12",
+    "t": "05:05",
+    "type": "sleep",
+    "note": "",
+    "id": 107
+  },
+  {
+    "d": "2025-05-12",
+    "t": "08:30",
+    "type": "wake",
+    "note": "",
+    "id": 108
+  },
+  {
+    "d": "2025-05-12",
+    "t": "10:10",
+    "type": "sleep",
+    "note": "",
+    "id": 109
+  },
+  {
+    "d": "2025-05-12",
+    "t": "10:45",
+    "type": "wake",
+    "note": "",
+    "id": 110
+  },
+  {
+    "d": "2025-05-12",
+    "t": "12:05",
+    "type": "sleep",
+    "note": "",
+    "id": 111
+  },
+  {
+    "d": "2025-05-12",
+    "t": "12:35",
+    "type": "wake",
+    "note": "",
+    "id": 112
+  },
+  {
+    "d": "2025-05-12",
+    "t": "14:00",
+    "type": "sleep",
+    "note": "",
+    "id": 113
+  },
+  {
+    "d": "2025-05-12",
+    "t": "16:12",
+    "type": "wake",
+    "note": "",
+    "id": 114
+  },
+  {
+    "d": "2025-05-12",
+    "t": "18:18",
+    "type": "sleep",
+    "note": "",
+    "id": 115
+  },
+  {
+    "d": "2025-05-12",
+    "t": "18:45",
+    "type": "wake",
+    "note": "",
+    "id": 116
+  },
+  {
+    "d": "2025-05-12",
+    "t": "20:45",
+    "type": "sleep",
+    "note": "",
+    "id": 117
+  },
+  {
+    "d": "2025-05-13",
+    "t": "01:30",
+    "type": "wake",
+    "note": "ינק לילה",
+    "id": 118
+  },
+  {
+    "d": "2025-05-13",
+    "t": "02:30",
+    "type": "sleep",
+    "note": "",
+    "id": 119
+  },
+  {
+    "d": "2025-05-13",
+    "t": "06:24",
+    "type": "wake",
+    "note": "",
+    "id": 120
+  },
+  {
+    "d": "2025-05-13",
+    "t": "08:00",
+    "type": "sleep",
+    "note": "",
+    "id": 121
+  },
+  {
+    "d": "2025-05-13",
+    "t": "09:35",
+    "type": "wake",
+    "note": "",
+    "id": 122
+  },
+  {
+    "d": "2025-05-13",
+    "t": "11:20",
+    "type": "sleep",
+    "note": "",
+    "id": 123
+  },
+  {
+    "d": "2025-05-13",
+    "t": "12:00",
+    "type": "wake",
+    "note": "",
+    "id": 124
+  },
+  {
+    "d": "2025-05-13",
+    "t": "13:25",
+    "type": "sleep",
+    "note": "",
+    "id": 125
+  },
+  {
+    "d": "2025-05-13",
+    "t": "16:40",
+    "type": "wake",
+    "note": "",
+    "id": 126
+  },
+  {
+    "d": "2025-05-13",
+    "t": "18:14",
+    "type": "sleep",
+    "note": "",
+    "id": 127
+  },
+  {
+    "d": "2025-05-13",
+    "t": "18:49",
+    "type": "wake",
+    "note": "",
+    "id": 128
+  },
+  {
+    "d": "2025-05-13",
+    "t": "20:45",
+    "type": "sleep",
+    "note": "",
+    "id": 129
+  },
+  {
+    "d": "2025-05-13",
+    "t": "21:00",
+    "type": "wake",
+    "note": "",
+    "id": 130
+  },
+  {
+    "d": "2025-05-13",
+    "t": "21:04",
+    "type": "sleep",
+    "note": "",
+    "id": 131
+  },
+  {
+    "d": "2025-05-14",
+    "t": "04:45",
+    "type": "wake",
+    "note": "ינק לילה",
+    "id": 132
+  },
+  {
+    "d": "2025-05-14",
+    "t": "06:05",
+    "type": "sleep",
+    "note": "",
+    "id": 133
+  },
+  {
+    "d": "2025-05-14",
+    "t": "09:00",
+    "type": "wake",
+    "note": "",
+    "id": 134
+  },
+  {
+    "d": "2025-05-14",
+    "t": "10:40",
+    "type": "sleep",
+    "note": "",
+    "id": 135
+  },
+  {
+    "d": "2025-05-14",
+    "t": "11:22",
+    "type": "wake",
+    "note": "",
+    "id": 136
+  },
+  {
+    "d": "2025-05-14",
+    "t": "13:20",
+    "type": "sleep",
+    "note": "",
+    "id": 137
+  },
+  {
+    "d": "2025-05-14",
+    "t": "14:00",
+    "type": "wake",
+    "note": "",
+    "id": 138
+  },
+  {
+    "d": "2025-05-14",
+    "t": "15:57",
+    "type": "sleep",
+    "note": "",
+    "id": 139
+  },
+  {
+    "d": "2025-05-14",
+    "t": "18:20",
+    "type": "wake",
+    "note": "",
+    "id": 140
+  },
+  {
+    "d": "2025-05-14",
+    "t": "20:30",
+    "type": "sleep",
+    "note": "",
+    "id": 141
+  },
+  {
+    "d": "2025-05-15",
+    "t": "02:54",
+    "type": "wake",
+    "note": "ינק לילה",
+    "id": 142
+  },
+  {
+    "d": "2025-05-15",
+    "t": "03:45",
+    "type": "sleep",
+    "note": "",
+    "id": 143
+  },
+  {
+    "d": "2025-05-15",
+    "t": "07:00",
+    "type": "wake",
+    "note": "",
+    "id": 144
+  },
+  {
+    "d": "2025-05-15",
+    "t": "08:45",
+    "type": "sleep",
+    "note": "",
+    "id": 145
+  },
+  {
+    "d": "2025-05-15",
+    "t": "09:30",
+    "type": "wake",
+    "note": "",
+    "id": 146
+  },
+  {
+    "d": "2025-05-15",
+    "t": "11:10",
+    "type": "sleep",
+    "note": "",
+    "id": 147
+  },
+  {
+    "d": "2025-05-15",
+    "t": "11:40",
+    "type": "wake",
+    "note": "",
+    "id": 148
+  },
+  {
+    "d": "2025-05-15",
+    "t": "13:54",
+    "type": "sleep",
+    "note": "",
+    "id": 149
+  },
+  {
+    "d": "2025-05-15",
+    "t": "16:25",
+    "type": "wake",
+    "note": "",
+    "id": 150
+  },
+  {
+    "d": "2025-05-15",
+    "t": "17:50",
+    "type": "sleep",
+    "note": "",
+    "id": 151
+  },
+  {
+    "d": "2025-05-15",
+    "t": "18:30",
+    "type": "wake",
+    "note": "",
+    "id": 152
+  },
+  {
+    "d": "2025-05-15",
+    "t": "20:00",
+    "type": "sleep",
+    "note": "",
+    "id": 153
+  },
+  {
+    "d": "2025-05-15",
+    "t": "23:45",
+    "type": "wake",
+    "note": "ינק לילה",
+    "id": 154
+  },
+  {
+    "d": "2025-05-16",
+    "t": "00:05",
+    "type": "sleep",
+    "note": "",
+    "id": 155
+  },
+  {
+    "d": "2025-05-16",
+    "t": "07:05",
+    "type": "wake",
+    "note": "",
+    "id": 156
+  },
+  {
+    "d": "2025-05-16",
+    "t": "08:15",
+    "type": "sleep",
+    "note": "",
+    "id": 157
+  },
+  {
+    "d": "2025-05-16",
+    "t": "09:00",
+    "type": "wake",
+    "note": "",
+    "id": 158
+  },
+  {
+    "d": "2025-05-16",
+    "t": "10:25",
+    "type": "sleep",
+    "note": "",
+    "id": 159
+  },
+  {
+    "d": "2025-05-16",
+    "t": "12:25",
+    "type": "wake",
+    "note": "",
+    "id": 160
+  },
+  {
+    "d": "2025-05-16",
+    "t": "13:45",
+    "type": "sleep",
+    "note": "",
+    "id": 161
+  },
+  {
+    "d": "2025-05-16",
+    "t": "14:50",
+    "type": "wake",
+    "note": "",
+    "id": 162
+  },
+  {
+    "d": "2025-05-16",
+    "t": "16:20",
+    "type": "sleep",
+    "note": "",
+    "id": 163
+  },
+  {
+    "d": "2025-05-16",
+    "t": "18:35",
+    "type": "wake",
+    "note": "",
+    "id": 164
+  },
+  {
+    "d": "2025-05-16",
+    "t": "20:30",
+    "type": "sleep",
+    "note": "",
+    "id": 165
+  },
+  {
+    "d": "2025-05-17",
+    "t": "03:10",
+    "type": "wake",
+    "note": "ינק לילה",
+    "id": 166
+  },
+  {
+    "d": "2025-05-17",
+    "t": "03:35",
+    "type": "sleep",
+    "note": "",
+    "id": 167
+  },
+  {
+    "d": "2025-05-17",
+    "t": "07:05",
+    "type": "wake",
+    "note": "",
+    "id": 168
+  },
+  {
+    "d": "2025-05-17",
+    "t": "08:45",
+    "type": "sleep",
+    "note": "",
+    "id": 169
+  },
+  {
+    "d": "2025-05-17",
+    "t": "09:30",
+    "type": "wake",
+    "note": "",
+    "id": 170
+  },
+  {
+    "d": "2025-05-17",
+    "t": "10:55",
+    "type": "sleep",
+    "note": "",
+    "id": 171
+  },
+  {
+    "d": "2025-05-17",
+    "t": "11:56",
+    "type": "wake",
+    "note": "",
+    "id": 172
+  },
+  {
+    "d": "2025-05-17",
+    "t": "13:30",
+    "type": "sleep",
+    "note": "",
+    "id": 173
+  },
+  {
+    "d": "2025-05-17",
+    "t": "14:15",
+    "type": "wake",
+    "note": "",
+    "id": 174
+  },
+  {
+    "d": "2025-05-17",
+    "t": "15:50",
+    "type": "sleep",
+    "note": "",
+    "id": 175
+  },
+  {
+    "d": "2025-05-17",
+    "t": "17:00",
+    "type": "wake",
+    "note": "",
+    "id": 176
+  }
+];
+
+let entries = [];
+let openDays = new Set();
+
+function load() {
+  // Entries will arrive via Firestore onSnapshot listener
+  // Seed local so UI isn't blank while Firebase loads
+  const s = localStorage.getItem('bst_v4');
+  if (s) entries = JSON.parse(s);
+  else entries = SEED.map((e,i)=>({...e,id:i+1}));
+}
+function save() {
+  // local cache only - Firebase sync via _fbAddEntry/_fbUpdateEntry/_fbDeleteEntry
+  localStorage.setItem('bst_v4', JSON.stringify(entries));
+}
+
+// ════════════════════════════════════
+// UTILS
+// ════════════════════════════════════
+const toMin = t => { const [h,m]=t.split(':').map(Number); return h*60+m; };
+const fmtDur = m => m<60 ? m+'ד׳' : Math.floor(m/60)+'ש׳'+(m%60?' '+(m%60)+'ד׳':'');
+const avg = a => a.length ? Math.round(a.reduce((s,x)=>s+x,0)/a.length) : 0;
+const HE_DAYS = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+
+function heDate(d) {
+  const dt = new Date(d+'T12:00:00');
+  return `יום ${HE_DAYS[dt.getDay()]} ${dt.getDate()}/${dt.getMonth()+1}`;
+}
+
+function groupByDay(arr) {
+  const map = {};
+  arr.forEach(e => {
+    if (!map[e.d]) map[e.d] = [];
+    map[e.d].push(e);
+  });
+  for (const k in map) map[k].sort((a,b)=>a.t.localeCompare(b.t));
+  return map;
+}
+
+function getWakeWindows(evs) {
+  const wws = [];
+  evs.forEach((e,i) => {
+    if (e.type==='sleep') {
+      const prev = [...evs].slice(0,i).reverse().find(x=>x.type==='wake');
+      if (prev) { const d=toMin(e.t)-toMin(prev.t); if(d>0&&d<360) wws.push(d); }
+    }
+  });
+  return wws;
+}
+
+function getSleepDurs(evs) {
+  const durs = [];
+  evs.forEach((e,i) => {
+    if (e.type==='wake') {
+      const prev = [...evs].slice(0,i).reverse().find(x=>x.type==='sleep');
+      if (prev) { const d=toMin(e.t)-toMin(prev.t); if(d>0&&d<720) durs.push(d); }
+    }
+  });
+  return durs;
+}
+
+function wwClass(m) {
+  if (m < 30) return 'short';
+  if (m > 90) return 'long';
+  return 'ok';
+}
+
+// ════════════════════════════════════
+// CLOCK
+// ════════════════════════════════════
+function tickClock() {
+  const n = new Date();
+  const pad = x => String(x).padStart(2,'0');
+  document.getElementById('live-clock').textContent = `${pad(n.getHours())}:${pad(n.getMinutes())}`;
+}
+
+function updateAge() {
+  const birth = new Date('2025-02-09');
+  const now = new Date();
+  const weeks = Math.floor((now-birth)/(7*24*60*60*1000));
+  const days = Math.floor((now-birth)/(24*60*60*1000)) % 7;
+  document.getElementById('baby-age').textContent = `${weeks} שבועות${days?' ו-'+days+' ימים':''}`;
+}
+
+// ════════════════════════════════════
+// NAV
+// ════════════════════════════════════
+let currentPage = 'dashboard';
+function nav(name) {
+  currentPage = name;
+  window._currentPage = name;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  event.target.classList.add('active');
+  renderPage(name);
+}
+
+function renderPage(name) {
+  if (name==='dashboard') renderDashboard();
+  if (name==='log') renderLog();
+  if (name==='stats') renderStats();
+}
+
+// ════════════════════════════════════
+// TIMELINE VISUAL
+// ════════════════════════════════════
+function buildTimeline(evs, dayStr) {
+  const START = 0, TOTAL = 24*60;
+  let html = `<div class="tl-wrap">
+    <div class="tl-label">${dayStr}</div>
+    <div class="tl-bar">`;
+
+  for (let i=0; i<evs.length-1; i++) {
+    const cur=evs[i], nxt=evs[i+1];
+    const s = Math.max(0, toMin(cur.t))/TOTAL*100;
+    const w = Math.max(0, (toMin(nxt.t)-toMin(cur.t)))/TOTAL*100;
+    const cls = cur.type==='sleep' ? 's-sleep' : 's-wake';
+    html += `<div class="tl-seg ${cls}" style="left:${s.toFixed(2)}%;width:${w.toFixed(2)}%" title="${cur.t}→${nxt.t}"></div>`;
+  }
+
+  evs.forEach(e => {
+    if (['yawn','cry','poop','feed'].includes(e.type)) {
+      const left = toMin(e.t)/TOTAL*100;
+      html += `<div class="tl-dot d-${e.type}" style="left:${left.toFixed(2)}%" title="${EV[e.type].label} ${e.t}${e.note?' ('+e.note+')':''}"></div>`;
+    }
+  });
+
+  html += `</div>
+    <div class="tl-hours">`;
+  for(let h=0;h<=24;h+=3) html+=`<span>${h}</span>`;
+  html += `</div></div>`;
+  return html;
+}
+
+// ════════════════════════════════════
+// DASHBOARD
+// ════════════════════════════════════
+function renderDashboard() {
+  const days = groupByDay(entries);
+  const sortedDays = Object.keys(days).sort();
+  const allEvs = [...entries].sort((a,b)=>a.d.localeCompare(b.d)||a.t.localeCompare(b.t));
+
+  // ---- Stats ----
+  let allWW=[], allSleep=[], allYts=[];
+  sortedDays.forEach(d=>{
+    const evs=days[d];
+    allWW.push(...getWakeWindows(evs));
+    allSleep.push(...getSleepDurs(evs));
+    evs.forEach((e,i)=>{
+      if(e.type==='yawn'){
+        const ns=evs.slice(i+1).find(x=>x.type==='sleep');
+        if(ns){const d2=toMin(ns.t)-toMin(e.t);if(d2>0&&d2<120)allYts.push(d2);}
+      }
+    });
+  });
+
+  // last night sleep (from ~18:00 to ~9:00)
+  let nightSleep = 0;
+  const lastDay = sortedDays[sortedDays.length-1];
+  if (lastDay) {
+    const prevDay = sortedDays[sortedDays.length-2];
+    const nightEvs = [
+      ...(prevDay ? days[prevDay].filter(e=>toMin(e.t)>=18*60) : []),
+      ...days[lastDay].filter(e=>toMin(e.t)<=9*60)
+    ].sort((a,b)=>a.t.localeCompare(b.t));
+    nightEvs.forEach((e,i)=>{
+      if(e.type==='wake'){
+        const prev=[...nightEvs].slice(0,i).reverse().find(x=>x.type==='sleep');
+        if(prev){const d2=toMin(e.t)-toMin(prev.t);if(d2>0&&d2<720)nightSleep+=d2;}
+      }
+    });
+  }
+
+  const avgWW  = avg(allWW);
+  const avgSl  = avg(allSleep);
+  const avgYts = avg(allYts);
+
+  document.getElementById('dash-stats').innerHTML = `
+    <div class="stat-card c-moon">
+      <div class="stat-icon">🌙</div>
+      <div class="stat-val">${fmtDur(avgSl||0)}</div>
+      <div class="stat-lbl">שינה ממוצעת</div>
+      <div class="stat-sub">לפרק שינה</div>
+    </div>
+    <div class="stat-card c-sun">
+      <div class="stat-icon">☀️</div>
+      <div class="stat-val">${fmtDur(avgWW||0)}</div>
+      <div class="stat-lbl">חלון ערות ממוצע</div>
+      <div class="stat-sub">${allWW.length} מדידות</div>
+    </div>
+    <div class="stat-card c-yawn">
+      <div class="stat-icon">😮</div>
+      <div class="stat-val">${fmtDur(avgYts||0)}</div>
+      <div class="stat-lbl">פיהוק → שינה</div>
+      <div class="stat-sub">זמן הרדמות</div>
+    </div>
+    <div class="stat-card c-feed">
+      <div class="stat-icon">🌙</div>
+      <div class="stat-val">${fmtDur(nightSleep||0)}</div>
+      <div class="stat-lbl">שינת לילה</div>
+      <div class="stat-sub">אמש</div>
+    </div>
+  `;
+
+  // ---- Last day timeline ----
+  if (lastDay && days[lastDay]) {
+    document.getElementById('dash-timeline').innerHTML =
+      `<div class="day-card" style="overflow:hidden">` +
+      buildTimeline(days[lastDay], heDate(lastDay)) +
+      `<div style="display:flex;gap:16px;padding:0 16px 14px;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px"><span style="display:inline-block;width:12px;height:8px;background:rgba(91,141,238,.55);border-radius:2px"></span>שינה</span>
+        <span style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px"><span style="display:inline-block;width:12px;height:8px;background:rgba(245,167,66,.2);border-radius:2px"></span>ערות</span>
+        <span style="font-size:11px;color:var(--yawn);display:flex;align-items:center;gap:5px">● פיהוק</span>
+        <span style="font-size:11px;color:var(--cry);display:flex;align-items:center;gap:5px">● בכי</span>
+        <span style="font-size:11px;color:var(--poop);display:flex;align-items:center;gap:5px">● קקי</span>
+      </div></div>`;
+  }
+
+  // ---- Insights ----
+  const insights = [];
+  if (avgWW > 0 && avgWW < 30) {
+    insights.push({ icon:'⚠️', cls:'ii-warn', title:'חלונות ערות קצרים', body:`ממוצע ${fmtDur(avgWW)} — מתחת ל-30ד׳ זה קצר אפילו לגיל 3 חודשים. ייתכן overtired.` });
+  } else if (avgWW >= 30 && avgWW <= 70) {
+    insights.push({ icon:'✅', cls:'ii-ok', title:'חלונות ערות תקינים', body:`ממוצע ${fmtDur(avgWW)} — נפיל בטווח הנורמלי לגיל זה.` });
+  }
+  if (avgYts > 0 && avgYts <= 20) {
+    insights.push({ icon:'😴', cls:'ii-moon', title:'הרדמות מהירה', body:`${fmtDur(avgYts)} מפיהוק להרדמות — סימן שהוא נלקח בזמן.` });
+  } else if (avgYts > 30) {
+    insights.push({ icon:'⏳', cls:'ii-sun', title:'הרדמות אטית', body:`${fmtDur(avgYts)} מפיהוק להרדמות — אפשר לנסות להכניס קצת יותר מוקדם.` });
+  }
+  const shortWW = allWW.filter(w=>w<25).length;
+  const pct = allWW.length ? Math.round(shortWW/allWW.length*100) : 0;
+  if (pct > 40) {
+    insights.push({ icon:'🔄', cls:'ii-warn', title:`${pct}% מהחלונות קצרים מ-25ד׳`, body:'ייתכן שהוא עייף-על (overtired) ולכן הגוף מכניס מהר לשינה. EC pause יכול להיות קשור לזה.' });
+  }
+  // night wakings
+  const nightWakes = allEvs.filter(e=>e.type==='wake'&&(toMin(e.t)<6*60||toMin(e.t)>=22*60)).length;
+  const nights = sortedDays.length;
+  const avgNW = nights ? (nightWakes/nights).toFixed(1) : '—';
+  insights.push({ icon:'🌛', cls:'ii-moon', title:`יקיצות לילה: ~${avgNW} ללילה`, body:'נורמלי לגיל 3 חודשים. רוב הלילות יקיצה אחת–שתיים לינוק.' });
+
+  document.getElementById('dash-insights').innerHTML = insights.map(ins=>`
+    <div class="insight-card">
+      <div class="insight-icon ${ins.cls}">${ins.icon}</div>
+      <div class="insight-text">
+        <div class="insight-title">${ins.title}</div>
+        <div class="insight-body">${ins.body}</div>
+      </div>
+    </div>`).join('');
+
+  // ---- Recent entries ----
+  const recent = [...entries].sort((a,b)=>b.d.localeCompare(a.d)||b.t.localeCompare(a.t)).slice(0,10);
+  document.getElementById('dash-recent').innerHTML = buildEntriesTable(recent, true);
+}
+
+// ════════════════════════════════════
+// LOG PAGE
+// ════════════════════════════════════
+function renderLog() {
+  const days = groupByDay(entries);
+  const sortedDays = Object.keys(days).sort().reverse();
+  if (!sortedDays.length) {
+    document.getElementById('log-content').innerHTML = '<div class="empty"><div class="empty-icon">🌙</div><div>אין רשומות עדיין</div></div>';
+    return;
+  }
+
+  let html = '';
+  sortedDays.forEach(day => {
+    const evs = days[day];
+    const wws = getWakeWindows(evs);
+    const avgWW = wws.length ? avg(wws) : null;
+    const sleeps = evs.filter(e=>e.type==='sleep').length;
+    const wwCls = avgWW ? (avgWW<30?'pill-short':avgWW>90?'pill-long':'pill-ok') : '';
+    const isOpen = openDays.has(day);
+
+    html += `<div class="day-card ${isOpen?'open':''}" id="dc-${day}">
+      <div class="day-card-hdr" onclick="toggleDay('${day}')">
+        <span class="day-title">${heDate(day)}</span>
+        <div class="day-meta">
+          <span class="pill pill-moon">${sleeps} שינות</span>
+          ${avgWW ? `<span class="pill ${wwCls}">חלון: ${fmtDur(avgWW)}</span>` : ''}
+          <span class="chevron">▼</span>
+        </div>
+      </div>
+      <div class="day-body">
+        ${buildTimeline(evs, '')}
+        ${buildEntriesTable(evs, true)}
+      </div>
+    </div>`;
+  });
+
+  document.getElementById('log-content').innerHTML = html;
+}
+
+function toggleDay(day) {
+  if (openDays.has(day)) openDays.delete(day);
+  else openDays.add(day);
+  const card = document.getElementById('dc-'+day);
+  if (card) card.classList.toggle('open');
+}
+
+function buildEntriesTable(evs, showDel) {
+  let html = `<table class="ev-table">
+    <thead><tr>
+      <th>שעה</th><th>אירוע</th><th>הערה</th><th>מידע</th>${showDel?'<th></th>':''}
+    </tr></thead><tbody>`;
+
+  const sorted = [...evs].sort((a,b)=>a.d.localeCompare(b.d)||a.t.localeCompare(b.t));
+
+  sorted.forEach((e,i) => {
+    const dayEvs = evs.filter(x=>x.d===e.d).sort((a,b)=>a.t.localeCompare(b.t));
+    const idx = dayEvs.findIndex(x=>x.id===e.id);
+    let info = '';
+
+    if (idx > 0) {
+      const prev = dayEvs[idx-1];
+      const dur = toMin(e.t) - toMin(prev.t);
+      if (dur > 0 && dur < 600) {
+        if (e.type==='wake' && prev.type==='sleep') {
+          info = `<span class="info-chip ic-dur">🌙 ${fmtDur(dur)}</span>`;
+        } else if (e.type==='sleep' && prev.type==='wake') {
+          const cls = wwClass(dur);
+          info = `<span class="info-chip ic-ww-${cls}">חלון ${fmtDur(dur)}</span>`;
+        } else if (e.type==='yawn') {
+          const lw = [...dayEvs].slice(0,idx).reverse().find(x=>x.type==='wake');
+          if (lw) {
+            const ww = toMin(e.t)-toMin(lw.t);
+            if (ww>0&&ww<300) {
+              const cls2 = wwClass(ww);
+              info = `<span class="info-chip ic-ww-${cls2}">פיהוק בעוד ${fmtDur(ww)}</span>`;
+            }
+          }
+        }
+      }
+    }
+
+    html += `<tr>
+      <td class="time-cell">${e.t}</td>
+      <td><span class="event-badge"><span class="ev-dot ${EV[e.type]?.dot||''}"></span>${EV[e.type]?.label||e.type}</span></td>
+      <td><span class="note-text">${e.note||''}</span></td>
+      <td>${info}</td>
+      ${showDel?`<td><div class="row-actions"><button class="edit-btn" onclick="openEditModal(${e.id})" title="ערוך">✏️</button><button class="del-btn" onclick="delEntry(${e.id})" title="מחק">✕</button></div></td>`:''}
+    </tr>`;
+  });
+
+  html += `</tbody></table>`;
+  return html;
+}
+
+// ════════════════════════════════════
+// ════════════════════════════════════
+// HEATMAP
+// ════════════════════════════════════
+function buildHeatmap(containerId, mode) {
+  // mode: 'sleep' or 'wake'
+  // For each 30-min slot (0..47), calculate % of days the baby was asleep/awake
+  const SLOTS = 48; // 30-min slots in 24h
+  const days = groupByDay(entries);
+  const sortedDays = Object.keys(days).sort();
+  const N = sortedDays.length;
+  if (!N) return;
+
+  // slotCounts[slot] = number of days baby was in state during that slot
+  const slotCounts = new Array(SLOTS).fill(0);
+
+  sortedDays.forEach(day => {
+    const evs = days[day].slice().sort((a,b)=>a.t.localeCompare(b.t));
+    // For each 30-min slot, determine state at midpoint
+    for (let s = 0; s < SLOTS; s++) {
+      const midMin = s * 30 + 15; // midpoint of slot in minutes from midnight
+      // Find last sleep/wake event before or at midpoint
+      let state = null;
+      for (let i = evs.length - 1; i >= 0; i--) {
+        const eMin = toMin(evs[i].t);
+        if (eMin <= midMin && (evs[i].type === 'sleep' || evs[i].type === 'wake')) {
+          state = evs[i].type;
+          break;
+        }
+      }
+      if (state === mode) slotCounts[s]++;
+    }
+  });
+
+  const maxCount = Math.max(...slotCounts, 1);
+  const color = mode === 'sleep' ? '74,126,232' : '232,149,42';
+  const label = mode === 'sleep' ? 'ישן' : 'ער';
+
+  // Build rows: group by hour (2 slots per hour)
+  // We'll do one row per 2-hour block for readability, cells = 30min slots
+  // Actually: one single row with all 48 cells, but show hour labels every 2
+  let cellsHTML = '';
+  for (let s = 0; s < SLOTS; s++) {
+    const pct = slotCounts[s] / N; // 0..1
+    const opacity = 0.05 + pct * 0.85;
+    const daysPct = Math.round(pct * 100);
+    const hour = Math.floor(s / 2);
+    const min = s % 2 === 0 ? '00' : '30';
+    const timeLabel = `${String(hour).padStart(2,'0')}:${min}`;
+    cellsHTML += `<div class="heatmap-cell" style="background:rgba(${color},${opacity.toFixed(2)})" title="${timeLabel} — ${label} ${daysPct}% מהימים (${slotCounts[s]}/${N})"></div>`;
+  }
+
+  // X-axis labels every 2 hours
+  let xLabels = '';
+  for (let h = 0; h < 24; h += 2) {
+    xLabels += `<span class="heatmap-x-label">${h}</span>`;
+  }
+
+  // Find peak sleep/wake window
+  let peakStart = 0, peakVal = 0;
+  for (let s = 0; s < SLOTS - 3; s++) {
+    const window2h = slotCounts[s] + slotCounts[s+1] + slotCounts[s+2] + slotCounts[s+3];
+    if (window2h > peakVal) { peakVal = window2h; peakStart = s; }
+  }
+  const peakHour = Math.floor(peakStart/2);
+  const peakMin = peakStart%2===0?'00':'30';
+  const peakEndS = peakStart+4;
+  const peakEndH = Math.floor(peakEndS/2);
+  const peakEndM = peakEndS%2===0?'00':'30';
+  const peakPct = Math.round(peakVal/(N*4)*100);
+
+  const subText = mode==='sleep'
+    ? `שעות השינה הכי סטטיסטיות: ${peakHour}:${peakMin}–${peakEndH}:${peakEndM} (${peakPct}% מהימים)`
+    : `שעות הערות הכי סטטיסטיות: ${peakHour}:${peakMin}–${peakEndH}:${peakEndM} (${peakPct}% מהימים)`;
+
+  document.getElementById(containerId).innerHTML = `
+    <div class="heatmap-wrap">
+      <h3>${mode==='sleep'?'🌙 הסתברות לשינה':'☀️ הסתברות לערות'} לפי שעה ביום</h3>
+      <div class="heatmap-sub">${subText} · מבוסס על ${N} ימים</div>
+      <div class="heatmap-chart">
+        <div class="heatmap-row">
+          <div class="heatmap-label">${label}</div>
+          <div class="heatmap-cells">${cellsHTML}</div>
+        </div>
+        <div class="heatmap-x-labels">
+          ${Array.from({length:12}, (_,i)=>`<span class="heatmap-x-label">${i*2}</span>`).join('')}
+        </div>
+      </div>
+      <div class="heatmap-legend">
+        <span>נמוך</span>
+        <div class="${mode==='sleep'?'legend-gradient':'legend-gradient-wake'}"></div>
+        <span>גבוה</span>
+      </div>
+    </div>`;
+}
+
+// STATS PAGE
+// ════════════════════════════════════
+function renderStats() {
+  buildHeatmap('heatmap-sleep', 'sleep');
+  buildHeatmap('heatmap-wake', 'wake');
+  const days = groupByDay(entries);
+  const sortedDays = Object.keys(days).sort();
+  let allWW=[], allSleep=[], allYts=[];
+
+  sortedDays.forEach(d=>{
+    const evs=days[d];
+    allWW.push(...getWakeWindows(evs));
+    allSleep.push(...getSleepDurs(evs));
+    evs.forEach((e,i)=>{
+      if(e.type==='yawn'){
+        const ns=evs.slice(i+1).find(x=>x.type==='sleep');
+        if(ns){const d2=toMin(ns.t)-toMin(e.t);if(d2>0&&d2<120)allYts.push(d2);}
+      }
+    });
+  });
+
+  const avgWW=avg(allWW), avgSl=avg(allSleep), avgYts=avg(allYts);
+  const minSl=allSleep.length?Math.min(...allSleep):0;
+  const maxSl=allSleep.length?Math.max(...allSleep):0;
+  const totalSleeps=entries.filter(e=>e.type==='sleep').length;
+
+  document.getElementById('stats-cards').innerHTML = `
+    <div class="stat-card c-moon">
+      <div class="stat-icon">🌙</div>
+      <div class="stat-val">${fmtDur(avgSl)}</div>
+      <div class="stat-lbl">שינה ממוצעת</div>
+      <div class="stat-sub">${fmtDur(minSl)} – ${fmtDur(maxSl)}</div>
+    </div>
+    <div class="stat-card c-sun">
+      <div class="stat-icon">☀️</div>
+      <div class="stat-val">${fmtDur(avgWW)}</div>
+      <div class="stat-lbl">חלון ערות ממוצע</div>
+      <div class="stat-sub">${allWW.length} מדידות</div>
+    </div>
+    <div class="stat-card c-yawn">
+      <div class="stat-icon">😮</div>
+      <div class="stat-val">${fmtDur(avgYts)}</div>
+      <div class="stat-lbl">פיהוק → שינה</div>
+      <div class="stat-sub">ממוצע</div>
+    </div>
+    <div class="stat-card c-feed">
+      <div class="stat-icon">📊</div>
+      <div class="stat-val">${totalSleeps}</div>
+      <div class="stat-lbl">סה"כ שינות</div>
+      <div class="stat-sub">${sortedDays.length} ימים</div>
+    </div>
+  `;
+
+  // WW distribution
+  const short=allWW.filter(w=>w<30).length;
+  const norm=allWW.filter(w=>w>=30&&w<=90).length;
+  const long=allWW.filter(w=>w>90).length;
+  const total=allWW.length||1;
+  const pShort=Math.round(short/total*100);
+  const pNorm=Math.round(norm/total*100);
+  const pLong=Math.round(long/total*100);
+
+  document.getElementById('ww-dist').innerHTML = `
+    <h3>חלוקת חלוני ערות (${allWW.length} מדידות)</h3>
+    <div class="ww-bar-wrap">
+      <div class="ww-bar-label"><span>⚡ קצר מ-30ד׳</span><span>${short} (${pShort}%)</span></div>
+      <div class="ww-bar-track"><div class="ww-bar-fill" style="width:${pShort}%;background:var(--sun)"></div></div>
+    </div>
+    <div class="ww-bar-wrap">
+      <div class="ww-bar-label"><span>✅ נורמלי 30–90ד׳</span><span>${norm} (${pNorm}%)</span></div>
+      <div class="ww-bar-track"><div class="ww-bar-fill" style="width:${pNorm}%;background:var(--feed)"></div></div>
+    </div>
+    <div class="ww-bar-wrap">
+      <div class="ww-bar-label"><span>🔴 ארוך מ-90ד׳</span><span>${long} (${pLong}%)</span></div>
+      <div class="ww-bar-track"><div class="ww-bar-fill" style="width:${pLong}%;background:var(--cry)"></div></div>
+    </div>
+  `;
+
+  // Per-day table
+  let rows = '';
+  sortedDays.reverse().forEach(day => {
+    const evs=days[day];
+    const wws=getWakeWindows(evs);
+    const slDurs=getSleepDurs(evs);
+    const sleeps=evs.filter(e=>e.type==='sleep').length;
+    const avgW=wws.length?avg(wws):null;
+    const cls=avgW?(avgW<30?'pill-short':avgW>90?'pill-long':'pill-ok'):'';
+    rows += `<tr>
+      <td>${heDate(day)}</td>
+      <td>${sleeps}</td>
+      <td>${avgW?`<span class="pill ${cls}">${fmtDur(avgW)}</span>`:'–'}</td>
+      <td>${slDurs.length?fmtDur(Math.min(...slDurs)):'–'}</td>
+      <td>${slDurs.length?fmtDur(Math.max(...slDurs)):'–'}</td>
+    </tr>`;
+  });
+
+  document.getElementById('per-day').innerHTML = `<table>
+    <thead><tr>
+      <th>תאריך</th><th>שינות</th><th>חלון ממוצע</th><th>שינה קצרה</th><th>שינה ארוכה</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+// ════════════════════════════════════
+// ADD / DELETE
+// ════════════════════════════════════
+function addEntry() {
+  const d=document.getElementById('inp-date').value;
+  const t=document.getElementById('inp-time').value;
+  const type=document.getElementById('inp-type').value;
+  const note=document.getElementById('inp-note').value.trim();
+  if(!d||!t){alert('נא למלא תאריך ושעה');return;}
+  const entry={d,t,type,note,id:Date.now()};
+  document.getElementById('inp-note').value='';
+  if(window._fbReady) { window._fbAddEntry(entry); }
+  else { entries.push(entry); save(); renderPage(currentPage); }
+}
+
+function delEntry(id) {
+  if(window._fbReady) { window._fbDeleteEntry(id); }
+  else { entries=entries.filter(e=>e.id!==id); save(); renderPage(currentPage); }
+}
+
+// EDIT MODAL
+let editingId = null;
+
+function openEditModal(id) {
+  const e = entries.find(x=>x.id===id);
+  if (!e) return;
+  editingId = id;
+  document.getElementById('edit-date').value = e.d;
+  document.getElementById('edit-time').value = e.t;
+  document.getElementById('edit-type').value = e.type;
+  document.getElementById('edit-note').value = e.note || '';
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal').classList.remove('open');
+  editingId = null;
+}
+
+function closeModal(ev) {
+  if (ev.target === document.getElementById('edit-modal')) closeEditModal();
+}
+
+function saveEdit() {
+  if (!editingId) return;
+  const idx = entries.findIndex(x=>x.id===editingId);
+  if (idx === -1) return;
+  const d = document.getElementById('edit-date').value;
+  const t = document.getElementById('edit-time').value;
+  if (!d || !t) { alert('נא למלא תאריך ושעה'); return; }
+  entries[idx].d    = d;
+  entries[idx].t    = t;
+  entries[idx].type = document.getElementById('edit-type').value;
+  entries[idx].note = document.getElementById('edit-note').value.trim();
+  closeEditModal();
+  if(window._fbReady) { window._fbUpdateEntry(entries[idx]); }
+  else { save(); renderPage(currentPage); }
+}
+
+document.addEventListener('keydown', e => { if (e.key==='Escape') closeEditModal(); });
+
+function setNow() {
+  const n=new Date();
+  const pad=x=>String(x).padStart(2,'0');
+  document.getElementById('inp-date').value=`${n.getFullYear()}-${pad(n.getMonth()+1)}-${pad(n.getDate())}`;
+  document.getElementById('inp-time').value=`${pad(n.getHours())}:${pad(n.getMinutes())}`;
+}
+
+// ════════════════════════════════════
+// MOBILE ADD SHEET
+// ════════════════════════════════════
+let selectedType = 'wake';
+
+function selectType(type, btn) {
+  selectedType = type;
+  document.querySelectorAll('#type-grid .type-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+function openAddSheet() {
+  setNowSheet();
+  document.getElementById('add-sheet').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeAddSheet() {
+  document.getElementById('add-sheet').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function closeAddSheetBackdrop(ev) {
+  if (ev.target === document.getElementById('add-sheet')) closeAddSheet();
+}
+
+function setNowSheet() {
+  const n = new Date();
+  const pad = x => String(x).padStart(2,'0');
+  document.getElementById('sheet-date').value = `${n.getFullYear()}-${pad(n.getMonth()+1)}-${pad(n.getDate())}`;
+  document.getElementById('sheet-time').value = `${pad(n.getHours())}:${pad(n.getMinutes())}`;
+}
+
+function addEntrySheet() {
+  const d    = document.getElementById('sheet-date').value;
+  const t    = document.getElementById('sheet-time').value;
+  const note = document.getElementById('sheet-note').value.trim();
+  if (!d || !t) { alert('נא למלא תאריך ושעה'); return; }
+  const entry = { d, t, type: selectedType, note, id: Date.now() };
+  document.getElementById('sheet-note').value = '';
+  closeAddSheet();
+  if(window._fbReady) { window._fbAddEntry(entry); }
+  else { entries.push(entry); save(); renderPage(currentPage); }
+}
+
+// ════════════════════════════════════
+// INIT
+// ════════════════════════════════════
+function init() {
+  window._SEED = SEED;
+  load();
+  setNow();
+  updateAge();
+  tickClock();
+  setInterval(tickClock, 10000);
+  renderDashboard();
+  window.dispatchEvent(new Event('appReady'));
+}
+
+// track current page for Firebase re-renders
+window._currentPage = 'dashboard';
+
+init();
+</script>
+</body>
+</html>
