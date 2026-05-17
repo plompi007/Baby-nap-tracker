@@ -1120,88 +1120,156 @@ body {
   </div>
 </div>
 
-<!-- Firebase SDK (compat) -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<!-- Firebase via REST API -->
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyAhsemdrVMDnvtvpXaRmNIvz0aCckrmXsI",
-  authDomain: "baby-nap-time.firebaseapp.com",
-  projectId: "baby-nap-time",
-  storageBucket: "baby-nap-time.firebasestorage.app",
-  messagingSenderId: "785269005585",
-  appId: "1:785269005585:web:fd684be9f38edfcd9280b0"
-};
+const FB_PROJECT = 'baby-nap-time';
+const FB_KEY     = 'AIzaSyAhsemdrVMDnvtvpXaRmNIvz0aCckrmXsI';
+const FB_BASE    = `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents`;
+const COL        = 'entries';
 
-firebase.initializeApp(firebaseConfig);
-const db  = firebase.firestore();
-const COL = "entries";
-
-// ── sync status indicator ──────────────────────────
 function setSyncStatus(status) {
   const el = document.getElementById('sync-status');
   if (!el) return;
   const map = {
-    ok:      { text: '✓ מסונכרן',   color: 'var(--feed)' },
-    saving:  { text: '⏳ שומר...',   color: 'var(--sun)'  },
-    loading: { text: '⏳ טוען...',   color: 'var(--sun)'  },
-    error:   { text: '⚠️ שגיאה',    color: 'var(--cry)'  },
+    ok:      { text: '✓ מסונכרן',  color: 'var(--feed)' },
+    saving:  { text: '⏳ שומר...',  color: 'var(--sun)'  },
+    loading: { text: '⏳ טוען...',  color: 'var(--sun)'  },
+    error:   { text: '⚠️ שגיאה',   color: 'var(--cry)'  },
   };
   const s = map[status] || map.ok;
   el.textContent = s.text;
   el.style.color = s.color;
 }
 
-// ── seed Firestore once if empty ───────────────────
-async function seedIfEmpty(seedData) {
-  const snap = await getDocs(collection(db, COL));
-  if (!snap.empty) return; // already has data
-  setSyncStatus('saving');
-  const batch = seedData.map(e =>
-    setDoc(doc(db, COL, String(e.id)), e)
-  );
-  await Promise.all(batch);
-  setSyncStatus('ok');
+// Convert JS object to Firestore fields format
+function toFsFields(e) {
+  return {
+    fields: {
+      d:    { stringValue: e.d },
+      t:    { stringValue: e.t },
+      type: { stringValue: e.type },
+      note: { stringValue: e.note || '' },
+      id:   { integerValue: String(e.id) },
+    }
+  };
 }
 
-// ── real-time listener ─────────────────────────────
-function startListener() {
-  setSyncStatus('loading');
-  const q = query(collection(db, COL));
-  onSnapshot(q, snap => {
-    entries = snap.docs.map(d => d.data());
-    entries.sort((a,b) => a.d.localeCompare(b.d) || a.t.localeCompare(b.t));
-    setSyncStatus('ok');
-    renderPage(window._currentPage || 'dashboard');
-  }, err => {
-    console.error(err);
-    setSyncStatus('error');
+// Convert Firestore doc to JS object
+function fromFsDoc(doc) {
+  const f = doc.fields;
+  return {
+    d:    f.d?.stringValue    || '',
+    t:    f.t?.stringValue    || '',
+    type: f.type?.stringValue || '',
+    note: f.note?.stringValue || '',
+    id:   parseInt(f.id?.integerValue || f.id?.stringValue || 0),
+  };
+}
+
+async function fsGet() {
+  let url = `${FB_BASE}/${COL}?key=${FB_KEY}&pageSize=300`;
+  let all = [];
+  while (url) {
+    const r = await fetch(url);
+    const d = await r.json();
+    if (d.documents) all.push(...d.documents.map(fromFsDoc));
+    url = d.nextPageToken ? `${FB_BASE}/${COL}?key=${FB_KEY}&pageSize=300&pageToken=${d.nextPageToken}` : null;
+  }
+  return all;
+}
+
+async function fsSet(entry) {
+  const url = `${FB_BASE}/${COL}/${entry.id}?key=${FB_KEY}`;
+  await fetch(url, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(toFsFields(entry))
   });
 }
 
-// ── override save/load/delete to use Firestore ─────
+async function fsDelete(id) {
+  const url = `${FB_BASE}/${COL}/${id}?key=${FB_KEY}`;
+  await fetch(url, { method: 'DELETE' });
+}
+
+async function seedIfEmpty(seedData) {
+  const existing = await fsGet();
+  if (existing.length > 0) return;
+  setSyncStatus('saving');
+  // Upload in batches of 10
+  for (let i = 0; i < seedData.length; i += 10) {
+    const batch = seedData.slice(i, i+10);
+    await Promise.all(batch.map(e => fsSet(e)));
+  }
+}
+
+async function loadFromFirestore() {
+  setSyncStatus('loading');
+  try {
+    const docs = await fsGet();
+    if (docs.length === 0) {
+      // seed
+      await seedIfEmpty(window._SEED);
+      const seeded = await fsGet();
+      entries = seeded.sort((a,b) => a.d.localeCompare(b.d) || a.t.localeCompare(b.t));
+    } else {
+      entries = docs.sort((a,b) => a.d.localeCompare(b.d) || a.t.localeCompare(b.t));
+    }
+    setSyncStatus('ok');
+    renderPage(window._currentPage || 'dashboard');
+  } catch(e) {
+    console.error('Firestore error:', e);
+    setSyncStatus('error');
+  }
+}
+
+// Poll every 15 seconds for updates from other device
+let _pollInterval = null;
+function startPolling() {
+  if (_pollInterval) clearInterval(_pollInterval);
+  _pollInterval = setInterval(async () => {
+    try {
+      const docs = await fsGet();
+      if (docs.length > 0) {
+        entries = docs.sort((a,b) => a.d.localeCompare(b.d) || a.t.localeCompare(b.t));
+        setSyncStatus('ok');
+        renderPage(window._currentPage || 'dashboard');
+      }
+    } catch(e) {}
+  }, 15000);
+}
+
+window._fbReady = false;
+
 window._fbAddEntry = async function(entry) {
   setSyncStatus('saving');
-  await setDoc(doc(db, COL, String(entry.id)), entry);
-  // listener will re-render automatically
+  entries.push(entry);
+  renderPage(window._currentPage || 'dashboard');
+  await fsSet(entry);
+  setSyncStatus('ok');
 };
 
 window._fbDeleteEntry = async function(id) {
   setSyncStatus('saving');
-  await deleteDoc(doc(db, COL, String(id)));
+  entries = entries.filter(e => e.id !== id);
+  renderPage(window._currentPage || 'dashboard');
+  await fsDelete(id);
+  setSyncStatus('ok');
 };
 
 window._fbUpdateEntry = async function(entry) {
   setSyncStatus('saving');
-  await setDoc(doc(db, COL, String(entry.id)), entry);
+  const idx = entries.findIndex(x => x.id === entry.id);
+  if (idx !== -1) entries[idx] = entry;
+  renderPage(window._currentPage || 'dashboard');
+  await fsSet(entry);
+  setSyncStatus('ok');
 };
 
-window._fbReady = true;
-
-// ── init Firebase after main app is ready ─────────
 window.addEventListener('appReady', async () => {
-  await seedIfEmpty(window._SEED);
-  startListener();
+  window._fbReady = true;
+  await loadFromFirestore();
+  startPolling();
 });
 
 </script>
@@ -1226,13 +1294,13 @@ let openDays = new Set();
 function load() {
   // Entries will arrive via Firestore onSnapshot listener
   // Seed local so UI isn't blank while Firebase loads
-  const s = localStorage.getItem('bst_v5');
+  const s = localStorage.getItem('bst_v6');
   if (s) entries = JSON.parse(s);
   else entries = SEED.map((e,i)=>({...e,id:i+1}));
 }
 function save() {
   // local cache only - Firebase sync via _fbAddEntry/_fbUpdateEntry/_fbDeleteEntry
-  localStorage.setItem('bst_v5', JSON.stringify(entries));
+  localStorage.setItem('bst_v6', JSON.stringify(entries));
 }
 
 // ════════════════════════════════════
