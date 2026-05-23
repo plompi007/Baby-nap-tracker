@@ -414,6 +414,7 @@ body {
   color: var(--dim);
   font-family: 'DM Mono', monospace;
   padding: 0 2px;
+  direction: ltr;
 }
 
 /* ═══ STATS PAGE ═══ */
@@ -800,6 +801,60 @@ body {
   0%   { opacity: 0; transform: translateY(0) rotate(0deg); }
   20%  { opacity: .8; }
   100% { opacity: 0; transform: translateY(-120vh) rotate(20deg); }
+}
+
+/* ═══ QUICK ACTIONS ═══ */
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.quick-btn {
+  background: var(--s1);
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all .15s;
+  box-shadow: var(--shadow-sm);
+  font-family: 'Rubik', sans-serif;
+}
+.quick-btn:active { transform: scale(.95); box-shadow: none; }
+.quick-btn .q-icon { font-size: 26px; line-height: 1; }
+.quick-btn .q-label { font-size: 12px; font-weight: 600; color: var(--text); }
+.quick-btn .q-time  { font-size: 10px; color: var(--muted); font-family: 'DM Mono', monospace; }
+.quick-btn.q-sleep  { border-color: rgba(74,126,232,.4); background: rgba(74,126,232,.04); }
+.quick-btn.q-wake   { border-color: rgba(232,149,42,.4); background: rgba(232,149,42,.04); }
+.quick-btn.q-yawn   { border-color: rgba(139,92,246,.4); background: rgba(139,92,246,.04); }
+.quick-btn.q-feed   { border-color: rgba(16,185,129,.4); background: rgba(16,185,129,.04); }
+.quick-btn.q-poop   { border-color: rgba(146,98,26,.3);  background: rgba(146,98,26,.04); }
+.quick-btn.q-cry    { border-color: rgba(239,68,68,.3);  background: rgba(239,68,68,.04); }
+
+.quick-confirm {
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #1a2035;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  z-index: 400;
+  opacity: 0;
+  transition: opacity .2s, transform .2s;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.quick-confirm.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 /* ═══ EMPTY ═══ */
@@ -1252,6 +1307,8 @@ body {
 
   <!-- DASHBOARD -->
   <div id="page-dashboard" class="page active">
+    <div class="section-hdr" style="margin-top:0"><h2>⚡ הוסף עכשיו</h2></div>
+    <div class="quick-actions" id="quick-actions"></div>
     <div class="stats-grid" id="dash-stats"></div>
     <div class="section-hdr"><h2>🌙 ציר הזמן — היום האחרון</h2></div>
     <div id="dash-timeline"></div>
@@ -1600,14 +1657,14 @@ function renderPage(name) {
 // TIMELINE VISUAL
 // ════════════════════════════════════
 function buildTimeline(evs, dayStr) {
-  const START = 0, TOTAL = 24*60;
+  const TOTAL = 24*60;
   let html = `<div class="tl-wrap">
     <div class="tl-label">${dayStr}</div>
     <div class="tl-bar">`;
 
   for (let i=0; i<evs.length-1; i++) {
     const cur=evs[i], nxt=evs[i+1];
-    const s = Math.max(0, toMin(cur.t))/TOTAL*100;
+    const s = toMin(cur.t)/TOTAL*100;
     const w = Math.max(0, (toMin(nxt.t)-toMin(cur.t)))/TOTAL*100;
     const cls = cur.type==='sleep' ? 's-sleep' : 's-wake';
     html += `<div class="tl-seg ${cls}" style="left:${s.toFixed(2)}%;width:${w.toFixed(2)}%" title="${cur.t}→${nxt.t}"></div>`;
@@ -1628,9 +1685,66 @@ function buildTimeline(evs, dayStr) {
 }
 
 // ════════════════════════════════════
+// QUICK ACTIONS
+// ════════════════════════════════════
+function showToast(msg) {
+  const el = document.getElementById('quick-confirm');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+function quickAdd(type) {
+  const now = new Date();
+  const pad = x => String(x).padStart(2,'0');
+  const d = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+  const t = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  const labels = { sleep:'🌙 נרדם', wake:'☀️ קם', yawn:'😮 פיהוק', feed:'🤱 ינק', poop:'💩 קקי', cry:'😢 בכי' };
+  const entry = { d, t, type, note: '', id: Date.now() };
+  if (window._fbReady) { window._fbAddEntry(entry); }
+  else { entries.push(entry); save(); renderPage(currentPage); }
+  showToast(`${labels[type]} נרשם בשעה ${t}`);
+  // update quick buttons time
+  renderQuickActions();
+}
+
+function renderQuickActions() {
+  const el = document.getElementById('quick-actions');
+  if (!el) return;
+  const now = new Date();
+  const pad = x => String(x).padStart(2,'0');
+  const nowStr = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+  // Find last event of each type today
+  const today = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+  const todayEvs = entries.filter(e=>e.d===today).sort((a,b)=>b.t.localeCompare(a.t));
+  const lastOf = type => { const e = todayEvs.find(x=>x.type===type); return e ? e.t : null; };
+
+  const btns = [
+    { type:'sleep', cls:'q-sleep', icon:'🌙', label:'נרדם' },
+    { type:'wake',  cls:'q-wake',  icon:'☀️', label:'קם' },
+    { type:'yawn',  cls:'q-yawn',  icon:'😮', label:'פיהוק' },
+    { type:'feed',  cls:'q-feed',  icon:'🤱', label:'ינק' },
+    { type:'poop',  cls:'q-poop',  icon:'💩', label:'קקי' },
+    { type:'cry',   cls:'q-cry',   icon:'😢', label:'בכי' },
+  ];
+
+  el.innerHTML = btns.map(b => {
+    const last = lastOf(b.type);
+    return `<button class="quick-btn ${b.cls}" onclick="quickAdd('${b.type}')">
+      <span class="q-icon">${b.icon}</span>
+      <span class="q-label">${b.label}</span>
+      <span class="q-time">${last ? 'אחרון: '+last : nowStr}</span>
+    </button>`;
+  }).join('');
+}
+
+// ════════════════════════════════════
 // DASHBOARD
 // ════════════════════════════════════
 function renderDashboard() {
+  renderQuickActions();
   const days = groupByDay(entries);
   const sortedDays = Object.keys(days).sort();
   const allEvs = [...entries].sort((a,b)=>a.d.localeCompare(b.d)||a.t.localeCompare(b.t));
@@ -1649,19 +1763,26 @@ function renderDashboard() {
     });
   });
 
-  // last night sleep (from ~18:00 to ~9:00)
+  // last night sleep: from last sleep >18:00 yesterday to last wake <10:00 today
   let nightSleep = 0;
   const lastDay = sortedDays[sortedDays.length-1];
   if (lastDay) {
     const prevDay = sortedDays[sortedDays.length-2];
-    const nightEvs = [
-      ...(prevDay ? days[prevDay].filter(e=>toMin(e.t)>=18*60) : []),
-      ...days[lastDay].filter(e=>toMin(e.t)<=9*60)
-    ].sort((a,b)=>a.t.localeCompare(b.t));
+    // Build a virtual timeline: prev-day events from 18:00+ with midnight offset, today events until 10:00
+    const nightEvs = [];
+    if (prevDay) {
+      days[prevDay].filter(e=>toMin(e.t)>=18*60).forEach(e=>{
+        nightEvs.push({...e, _min: toMin(e.t)});
+      });
+    }
+    days[lastDay].filter(e=>toMin(e.t)<=10*60).forEach(e=>{
+      nightEvs.push({...e, _min: toMin(e.t) + 24*60}); // offset by 24h
+    });
+    nightEvs.sort((a,b)=>a._min-b._min);
     nightEvs.forEach((e,i)=>{
       if(e.type==='wake'){
         const prev=[...nightEvs].slice(0,i).reverse().find(x=>x.type==='sleep');
-        if(prev){const d2=toMin(e.t)-toMin(prev.t);if(d2>0&&d2<720)nightSleep+=d2;}
+        if(prev){const d2=e._min-prev._min;if(d2>0&&d2<720)nightSleep+=d2;}
       }
     });
   }
@@ -1913,9 +2034,8 @@ function buildHeatmap(containerId, mode) {
   const peakEndM = peakEndS%2===0?'00':'30';
   const peakPct = Math.round(peakVal/(N*4)*100);
 
-  const subText = mode==='sleep'
-    ? `שעות השינה הכי סטטיסטיות: ${peakHour}:${peakMin}–${peakEndH}:${peakEndM} (${peakPct}% מהימים)`
-    : `שעות הערות הכי סטטיסטיות: ${peakHour}:${peakMin}–${peakEndH}:${peakEndM} (${peakPct}% מהימים)`;
+  const modeLabel = mode==='sleep' ? 'ישן' : 'ער';
+  const subText = modeLabel + ' הכי הרבה בין ' + peakHour + ':' + peakMin + ' ל-' + peakEndH + ':' + peakEndM + ' — ' + peakPct + '% מהימים';
 
   document.getElementById(containerId).innerHTML = `
     <div class="heatmap-wrap">
@@ -1985,67 +2105,132 @@ function buildBarChart(containerId, title, subtitle, data, color, unit, maxOverr
 }
 
 function renderCharts(days, sortedDays) {
-  const chronoDays = [...sortedDays].sort();
+  const chronoDays = [...sortedDays].sort().slice(-14); // last 14 days
 
-  // Chart 1: total sleep per day (minutes)
-  const sleepData = chronoDays.map(day => {
+  function makeBarChart(containerId, title, subtitle, bars, yUnit) {
+    // bars: [{label, value, color, valLabel}]
+    if (!bars.length) return;
+    const maxVal = Math.max(...bars.map(b => b.value), 1);
+
+    // Nice grid max
+    const niceMax = yUnit === 'min'
+      ? Math.ceil(maxVal / 60) * 60
+      : Math.ceil(maxVal / 2) * 2;
+
+    // Grid lines (3-4 lines)
+    const step = yUnit === 'min'
+      ? (niceMax <= 120 ? 30 : niceMax <= 300 ? 60 : 120)
+      : (niceMax <= 6 ? 2 : niceMax <= 10 ? 2 : 3);
+
+    const CHART_H = 160;
+    const BAR_AREA_H = CHART_H - 36; // leave room for x labels
+
+    // Y axis labels
+    let yLabels = '';
+    for (let g = 0; g <= niceMax; g += step) {
+      const bottom = (g / niceMax * BAR_AREA_H);
+      const lbl = yUnit === 'min' ? (g >= 60 ? (g/60)+'ש׳' : g+"'") : g;
+      yLabels += `<div style="position:absolute;bottom:${bottom}px;right:0;font-size:9px;font-family:'DM Mono',monospace;color:var(--dim);white-space:nowrap;transform:translateY(50%)">${lbl}</div>`;
+    }
+
+    // Grid lines
+    let gridLines = '';
+    for (let g = step; g <= niceMax; g += step) {
+      const bottom = (g / niceMax * BAR_AREA_H);
+      gridLines += `<div style="position:absolute;bottom:${bottom}px;left:0;right:0;border-top:1px dashed var(--border);pointer-events:none"></div>`;
+    }
+
+    // Bars
+    let barsHTML = '';
+    bars.forEach(b => {
+      const h = b.value > 0 ? Math.max(4, Math.round(b.value / niceMax * BAR_AREA_H)) : 2;
+      barsHTML += `
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;min-width:0;gap:2px">
+          <div style="font-size:9px;font-family:'DM Mono',monospace;color:var(--muted);text-align:center;line-height:1.2;margin-bottom:1px">${b.valLabel}</div>
+          <div style="width:80%;height:${h}px;background:${b.color};border-radius:4px 4px 0 0;transition:height .4s ease" title="${b.label}: ${b.valLabel}"></div>
+          <div style="font-size:9px;font-family:'DM Mono',monospace;color:var(--dim);text-align:center;padding-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${b.label}</div>
+        </div>`;
+    });
+
+    document.getElementById(containerId).innerHTML = `
+      <div class="chart-card">
+        <h3>${title}</h3>
+        <div class="chart-sub">${subtitle}</div>
+        <div style="display:flex;gap:8px;align-items:flex-end">
+          <div style="position:relative;width:28px;flex-shrink:0;height:${BAR_AREA_H}px">${yLabels}</div>
+          <div style="flex:1;min-width:0;overflow-x:auto">
+            <div style="position:relative;height:${BAR_AREA_H}px;min-width:${bars.length * 22}px">
+              ${gridLines}
+              <div style="position:absolute;inset:0;display:flex;align-items:flex-end;gap:2px;padding-bottom:0">
+                ${bars.map(b => {
+                  const h = b.value > 0 ? Math.max(4, Math.round(b.value / niceMax * BAR_AREA_H)) : 2;
+                  return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;min-width:18px">
+                    <div style="font-size:8px;font-family:'DM Mono',monospace;color:var(--muted);text-align:center;margin-bottom:1px;line-height:1">${b.valLabel}</div>
+                    <div style="width:85%;height:${h}px;background:${b.color};border-radius:3px 3px 0 0" title="${b.label}: ${b.valLabel}"></div>
+                  </div>`;
+                }).join('')}
+              </div>
+            </div>
+            <div style="display:flex;gap:2px;padding-top:4px;min-width:${bars.length * 22}px">
+              ${bars.map(b => `<div style="flex:1;min-width:18px;font-size:9px;font-family:'DM Mono',monospace;color:var(--dim);text-align:center;line-height:1.2">${b.label}</div>`).join('')}
+            </div>
+          </div>
+        </div>
+        ${containerId === 'chart-ww-avg' ? `
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px">
+          <div style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)"><div style="width:10px;height:10px;border-radius:2px;background:rgba(16,185,129,.8)"></div>תקין 30–90ד׳</div>
+          <div style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)"><div style="width:10px;height:10px;border-radius:2px;background:rgba(232,149,42,.8)"></div>קצר &lt;30ד׳</div>
+          <div style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)"><div style="width:10px;height:10px;border-radius:2px;background:rgba(239,68,68,.8)"></div>ארוך &gt;90ד׳</div>
+        </div>` : ''}
+      </div>`;
+  }
+
+  // Chart 1: total sleep per day
+  const sleepBars = chronoDays.map(day => {
     const evs = days[day];
     const durs = getSleepDurs(evs);
     const total = durs.reduce((s,x)=>s+x, 0);
     const dt = new Date(day+'T12:00:00');
-    return { label: `${dt.getDate()}/${dt.getMonth()+1}`, value: total, subval: fmtDur(total) };
+    return {
+      label: `${dt.getDate()}/${dt.getMonth()+1}`,
+      value: total,
+      valLabel: total ? fmtDur(total) : '–',
+      color: 'rgba(74,126,232,.75)'
+    };
   });
-  buildBarChart('chart-sleep-total', '🌙 סך שינה יומית', 'דקות שינה מצטברות לכל יום', sleepData, 'rgba(74,126,232,.75)', 'min');
+  makeBarChart('chart-sleep-total', '🌙 סך שינה יומית', 'שעות שינה מצטברות לכל יום', sleepBars, 'min');
 
   // Chart 2: avg wake window per day
-  const wwData = chronoDays.map(day => {
+  const wwBars = chronoDays.map(day => {
     const evs = days[day];
     const wws = getWakeWindows(evs);
     const a = wws.length ? avg(wws) : 0;
     const dt = new Date(day+'T12:00:00');
-    const color = a === 0 ? 'var(--border)' : a < 30 ? 'rgba(232,149,42,.75)' : a > 90 ? 'rgba(239,68,68,.75)' : 'rgba(16,185,129,.75)';
-    return { label: `${dt.getDate()}/${dt.getMonth()+1}`, value: a, subval: a ? fmtDur(a) : '–', color };
+    const color = a === 0 ? 'var(--border)' : a < 30 ? 'rgba(232,149,42,.8)' : a > 90 ? 'rgba(239,68,68,.8)' : 'rgba(16,185,129,.8)';
+    return {
+      label: `${dt.getDate()}/${dt.getMonth()+1}`,
+      value: a,
+      valLabel: a ? fmtDur(a) : '–',
+      color
+    };
   });
-  // multi-color bars
-  const maxWW = Math.max(...wwData.map(d=>d.value), 1);
-  const CHART_H = 112;
-  let wwBars = '<div class="chart-grid">';
-  [30, 60, 90].forEach(g => {
-    wwBars += `<div class="grid-line" style="bottom:${g/maxWW*100}%"><span>${fmtDur(g)}</span></div>`;
-  });
-  wwBars += '</div>';
-  wwData.forEach(d => {
-    const h = d.value > 0 ? Math.max(3, Math.round(d.value/maxWW*CHART_H)) : 0;
-    wwBars += `<div class="bar-col">
-      <div style="font-size:9px;font-family:'DM Mono',monospace;color:var(--muted);margin-bottom:2px;opacity:0;transition:opacity .15s" class="bar-top-val">${d.subval}</div>
-      <div class="bar-fill" style="height:${h}px;background:${d.color}"
-           onmouseenter="this.previousElementSibling.style.opacity=1"
-           onmouseleave="this.previousElementSibling.style.opacity=0"
-           title="${d.label}: ${d.subval}"></div>
-      <div class="bar-label">${d.label}</div>
-    </div>`;
-  });
-  document.getElementById('chart-ww-avg').innerHTML = `
-    <div class="chart-card">
-      <h3>☀️ חלון ערות ממוצע לפי יום</h3>
-      <div class="chart-sub">ירוק = תקין (30–90ד׳) · כתום = קצר · אדום = ארוך</div>
-      <div class="bar-chart" style="height:${CHART_H+28}px">${wwBars}</div>
-      <div class="chart-legend">
-        <div class="legend-item"><div class="legend-dot" style="background:rgba(16,185,129,.75)"></div>תקין 30–90ד׳</div>
-        <div class="legend-item"><div class="legend-dot" style="background:rgba(232,149,42,.75)"></div>קצר &lt;30ד׳</div>
-        <div class="legend-item"><div class="legend-dot" style="background:rgba(239,68,68,.75)"></div>ארוך &gt;90ד׳</div>
-      </div>
-    </div>`;
+  makeBarChart('chart-ww-avg', '☀️ חלון ערות ממוצע לפי יום', 'ירוק = תקין · כתום = קצר · אדום = ארוך', wwBars, 'min');
 
-  // Chart 3: number of naps per day
-  const napsData = chronoDays.map(day => {
+  // Chart 3: naps per day
+  const napBars = chronoDays.map(day => {
     const evs = days[day];
     const n = evs.filter(e=>e.type==='sleep').length;
     const dt = new Date(day+'T12:00:00');
-    return { label: `${dt.getDate()}/${dt.getMonth()+1}`, value: n };
+    return {
+      label: `${dt.getDate()}/${dt.getMonth()+1}`,
+      value: n,
+      valLabel: String(n),
+      color: 'rgba(139,92,246,.7)'
+    };
   });
-  buildBarChart('chart-naps', '💤 מספר שינות לפי יום', 'כמה פעמים נרדם כל יום', napsData, 'rgba(139,92,246,.7)', 'count', Math.max(...napsData.map(d=>d.value), 8));
+  makeBarChart('chart-naps', '💤 מספר שינות לפי יום', 'כמה פעמים נרדם כל יום', napBars, 'count');
 }
+
 
 function renderStats() {
   buildHeatmap('heatmap-sleep', 'sleep');
@@ -2321,6 +2506,8 @@ window._currentPage = 'dashboard';
 
 init();
 </script>
+<div class="quick-confirm" id="quick-confirm"></div>
+
 <!-- LOVE MODAL -->
 <div class="love-backdrop" id="love-modal" onclick="closeLoveModal()">
   <div class="love-floats" id="love-floats"></div>
