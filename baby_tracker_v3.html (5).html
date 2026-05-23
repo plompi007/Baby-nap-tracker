@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מעקב שינה — תינוק</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#08090d;--s1:#0e1018;--s2:#141720;--s3:#1c2030;
+  --border:#232840;--border2:#2e3550;
+  --moon:#5b8dee;--sun:#f5a742;--yawn:#b07ef5;--cry:#f5617a;--poop:#b5843a;--feed:#42d9a0;
+  --text:#dde2f0;--muted:#5a6280;--dim:#3a4260;
+  --r:14px;--r-sm:8px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Rubik',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+.app{display:flex;flex-direction:column;min-height:100vh;}
+
+/* HEADER */
+.header{background:var(--s1);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.header-left{display:flex;align-items:center;gap:14px;}
+.moon-icon{width:38px;height:38px;background:linear-gradient(135deg,#1e2a50,#2a3a70);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 0 0 1px var(--border2),0 0 20px rgba(91,141,238,.15);}
+.header-title{font-size:17px;font-weight:600;}
+.header-sub{font-size:12px;color:var(--muted);margin-top:1px;font-family:'DM Mono',monospace;}
+.header-now{background:var(--s3);border:1px solid var(--border2);border-radius:20px;padding:6px 14px;font-size:12px;font-family:'DM Mono',monospace;color:var(--muted);}
+
+/* NAV */
+.nav{background:var(--s1);border-bottom:1px solid var(--border);padding:0 24px;display:flex;gap:0;overflow-x:auto;}
+.nav-btn{padding:13px 16px;font-family:'Rubik',sans-serif;font-size:13px;font-weight:500;color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:color .2s,border-color .2s;white-space:nowrap;}
+.nav-btn:hover{color:var(--text);}
+.nav-btn.active{color:var(--moon);border-bottom-color:var(--moon);}
+
+/* MAIN */
+.content{flex:1;padding:24px;max-width:1000px;margin:0 auto;width:100%;}
+.page{display:none;animation:fadeIn .25s ease;}
+.page.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ADD PANEL */
+.add-panel{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;margin-bottom:24px;display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+.field input,.field select{background:var(--s1);border:1px solid var(--border2);border-radius:var(--r-sm);color:var(--text);font-family:'DM Mono',monospace;font-size:13px;padding:8px 11px;outline:none;transition:border-color .2s;}
+.field input:focus,.field select:focus{border-color:var(--moon);}
+.field select option{background:var(--s2);}
+.btn-add{background:var(--moon);color:#fff;border:none;border-radius:var(--r-sm);padding:9px 20px;font-family:'Rubik',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .2s,transform .1s;white-space:nowrap;}
+.btn-add:hover{opacity:.85;}
+.btn-add:active{transform:scale(.97);}
+.btn-now{background:var(--s3);border:1px solid var(--border2);border-radius:var(--r-sm);color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;padding:5px 10px;cursor:pointer;transition:color .2s,border-color .2s;margin-top:4px;display:block;width:100%;text-align:center;}
+.btn-now:hover{color:var(--moon);border-color:var(--moon);}
+
+/* STAT CARDS */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:24px;}
+.stat-card{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:18px 16px;position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:var(--r) var(--r) 0 0;}
+.stat-card.c-moon::before{background:var(--moon);}
+.stat-card.c-sun::before{background:var(--sun);}
+.stat-card.c-yawn::before{background:var(--yawn);}
+.stat-card.c-feed::before{background:var(--feed);}
+.stat-icon{font-size:20px;margin-bottom:10px;}
+.stat-val{font-size:26px;font-weight:700;font-family:'DM Mono',monospace;line-height:1;margin-bottom:4px;}
+.stat-lbl{font-size:11px;color:var(--muted);font-weight:500;}
+.stat-sub{font-size:10px;color:var(--dim);margin-top:3px;font-family:'DM Mono',monospace;}
+.stat-explain{font-size:10px;color:var(--muted);margin-top:6px;line-height:1.4;border-top:1px solid var(--border);padding-top:6px;}
+.stat-card.c-moon .stat-val{color:var(--moon);}
+.stat-card.c-sun .stat-val{color:var(--sun);}
+.stat-card.c-yawn .stat-val{color:var(--yawn);}
+.stat-card.c-feed .stat-val{color:var(--feed);}
+
+/* SECTION HEADERS */
+.section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;margin-top:28px;}
+.section-hdr:first-child{margin-top:0;}
+.section-hdr h2{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
+.section-explain{font-size:11px;color:var(--muted);background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 14px;margin-bottom:14px;line-height:1.6;}
+.section-explain strong{color:var(--text);}
+
+/* CHART CONTAINER */
+.chart-card{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:16px;}
+.chart-card h3{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;}
+.chart-desc{font-size:11px;color:var(--dim);margin-bottom:16px;line-height:1.5;}
+.chart-wrap{position:relative;overflow-x:auto;}
+
+/* BAR CHART */
+.bar-chart{display:flex;align-items:flex-end;gap:6px;height:120px;padding-bottom:24px;position:relative;}
+.bar-chart::after{content:'';position:absolute;bottom:24px;left:0;right:0;height:1px;background:var(--border);}
+.bar-group{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;min-width:32px;}
+.bar-inner{display:flex;gap:2px;align-items:flex-end;width:100%;}
+.bar{border-radius:3px 3px 0 0;transition:opacity .2s;cursor:pointer;position:relative;min-height:2px;}
+.bar:hover{opacity:.75;}
+.bar-label{font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;text-align:center;white-space:nowrap;}
+.bar-val{font-size:9px;color:var(--dim);text-align:center;font-family:'DM Mono',monospace;}
+
+/* Y AXIS LABELS */
+.chart-with-axis{display:flex;gap:8px;}
+.y-axis{display:flex;flex-direction:column;justify-content:space-between;padding-bottom:24px;font-size:9px;color:var(--dim);font-family:'DM Mono',monospace;text-align:left;min-width:28px;}
+
+/* LINE CHART (SVG) */
+.line-chart-wrap{overflow-x:auto;}
+svg.line-chart{display:block;}
+
+/* LEGEND */
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);}
+.legend-dot{width:10px;height:10px;border-radius:2px;}
+
+/* WW DIST */
+.ww-dist{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:12px;}
+.ww-dist h3{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;}
+.ww-dist-desc{font-size:11px;color:var(--dim);margin-bottom:14px;line-height:1.5;}
+.ww-bar-wrap{margin-bottom:12px;}
+.ww-bar-label{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:5px;}
+.ww-bar-label .hint{font-size:10px;color:var(--dim);}
+.ww-bar-track{height:10px;background:var(--s1);border-radius:5px;overflow:hidden;}
+.ww-bar-fill{height:100%;border-radius:5px;transition:width .6s ease;}
+
+/* DAY CARD */
+.day-card{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);margin-bottom:12px;overflow:hidden;}
+.day-card-hdr{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;transition:background .15s;}
+.day-card-hdr:hover{background:var(--s3);}
+.day-title{font-size:14px;font-weight:600;}
+.day-meta{display:flex;gap:8px;align-items:center;}
+.pill{font-size:11px;font-family:'DM Mono',monospace;padding:3px 9px;border-radius:20px;font-weight:500;}
+.pill-moon{background:rgba(91,141,238,.15);color:var(--moon);}
+.pill-ok{background:rgba(66,217,160,.15);color:var(--feed);}
+.pill-short{background:rgba(245,167,66,.15);color:var(--sun);}
+.pill-long{background:rgba(245,97,122,.15);color:var(--cry);}
+.chevron{color:var(--muted);font-size:12px;transition:transform .25s;}
+.day-card.open .chevron{transform:rotate(180deg);}
+.day-body{display:none;}
+.day-card.open .day-body{display:block;}
+
+/* TIMELINE */
+.tl-wrap{padding:14px 16px;}
+.tl-label{font-size:10px;color:var(--muted);margin-bottom:6px;font-family:'DM Mono',monospace;}
+.tl-bar{position:relative;height:28px;background:var(--s1);border-radius:6px;border:1px solid var(--border);overflow:visible;margin-bottom:4px;}
+.tl-seg{position:absolute;top:0;height:100%;}
+.tl-seg:first-child{border-radius:5px 0 0 5px;}
+.tl-seg.s-sleep{background:rgba(91,141,238,.55);}
+.tl-seg.s-wake{background:rgba(245,167,66,.2);}
+.tl-dot{position:absolute;top:50%;transform:translate(-50%,-50%);width:9px;height:9px;border-radius:50%;z-index:2;cursor:pointer;transition:transform .15s;box-shadow:0 0 0 2px var(--s2);}
+.tl-dot:hover{transform:translate(-50%,-50%) scale(1.6);}
+.tl-dot.d-yawn{background:var(--yawn);}
+.tl-dot.d-cry{background:var(--cry);}
+.tl-dot.d-poop{background:var(--poop);}
+.tl-dot.d-feed{background:var(--feed);}
+.tl-hours{display:flex;justify-content:space-between;font-size:9px;color:var(--dim);font-family:'DM Mono',monospace;padding:0 2px;}
+
+/* EV TABLE */
+.ev-table{width:100%;border-collapse:collapse;}
+.ev-table th{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;padding:8px 16px;text-align:right;border-bottom:1px solid var(--border);background:rgba(255,255,255,.015);}
+.ev-table td{padding:10px 16px;font-size:13px;border-bottom:1px solid rgba(35,40,64,.6);vertical-align:middle;}
+.ev-table tr:last-child td{border-bottom:none;}
+.ev-table tr:hover td{background:rgba(91,141,238,.04);}
+.time-cell{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;}
+.event-badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;}
+.ev-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.ev-dot-sleep{background:var(--moon);}
+.ev-dot-wake{background:var(--sun);}
+.ev-dot-yawn{background:var(--yawn);}
+.ev-dot-cry{background:var(--cry);}
+.ev-dot-poop{background:var(--poop);}
+.ev-dot-feed{background:var(--feed);}
+.info-chip{font-size:11px;font-family:'DM Mono',monospace;padding:3px 8px;border-radius:6px;font-weight:500;}
+.ic-ww-short{background:rgba(245,167,66,.12);color:var(--sun);border:1px solid rgba(245,167,66,.2);}
+.ic-ww-ok{background:rgba(66,217,160,.12);color:var(--feed);border:1px solid rgba(66,217,160,.2);}
+.ic-ww-long{background:rgba(245,97,122,.12);color:var(--cry);border:1px solid rgba(245,97,122,.2);}
+.ic-dur{background:rgba(91,141,238,.1);color:var(--moon);border:1px solid rgba(91,141,238,.2);}
+.del-btn{background:none;border:none;color:var(--dim);cursor:pointer;font-size:13px;padding:4px 6px;border-radius:4px;transition:color .15s,background .15s;}
+.del-btn:hover{color:var(--cry);background:rgba(245,97,122,.1);}
+.note-text{font-size:11px;color:var(--muted);}
+
+/* INSIGHT CARDS */
+.insight-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:24px;}
+.insight-card{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:16px;display:flex;gap:12px;align-items:flex-start;}
+.insight-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.ii-moon{background:rgba(91,141,238,.15);}
+.ii-sun{background:rgba(245,167,66,.15);}
+.ii-yawn{background:rgba(176,126,245,.15);}
+.ii-warn{background:rgba(245,97,122,.12);}
+.ii-ok{background:rgba(66,217,160,.12);}
+.insight-text{flex:1;}
+.insight-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px;}
+.insight-body{font-size:11px;color:var(--muted);line-height:1.5;}
+
+/* PER DAY TABLE */
+.per-day-table{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:16px;}
+.per-day-table table{width:100%;border-collapse:collapse;}
+.per-day-table th{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;padding:10px 16px;text-align:right;background:rgba(255,255,255,.02);border-bottom:1px solid var(--border);}
+.per-day-table td{padding:10px 16px;font-size:12px;border-bottom:1px solid rgba(35,40,64,.6);vertical-align:middle;}
+.per-day-table tr:last-child td{border-bottom:none;}
+.per-day-table tr:hover td{background:rgba(91,141,238,.04);}
+
+/* COMPARISON TABLE */
+.cmp-row-best td{background:rgba(66,217,160,.05);}
+.cmp-row-worst td{background:rgba(245,97,122,.04);}
+
+.empty{text-align:center;padding:60px 20px;color:var(--muted);font-size:14px;}
+.empty-icon{font-size:40px;margin-bottom:12px;opacity:.5;}
+
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px;}
+
+@media(max-width:600px){
+  .content{padding:14px;}
+  .add-panel{gap:10px;}
+  .field input,.field select{font-size:16px;}
+  .stats-grid{grid-template-columns:repeat(2,1fr);}
+  .nav-btn{padding:12px 10px;font-size:12px;}
+  .header{padding:12px 16px;}
+  .header-now{display:none;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<header class="header">
+  <div class="header-left">
+    <div class="moon-icon">🌙</div>
+    <div>
+      <div class="header-title">מעקב שינה</div>
+      <div class="header-sub" id="baby-age">טוען גיל...</div>
+    </div>
+  </div>
+  <div class="header-now" id="live-clock">--:--</div>
+</header>
+
+<nav class="nav">
+  <button class="nav-btn active" onclick="nav('dashboard',event)">📊 דשבורד</button>
+  <button class="nav-btn" onclick="nav('log',event)">📋 יומן</button>
+  <button class="nav-btn" onclick="nav('stats',event)">📈 סטטיסטיקות</button>
+</nav>
+
+<div class="content">
+
+  <div class="add-panel">
+    <div class="field">
+      <label>תאריך</label>
+      <input type="date" id="inp-date">
+    </div>
+    <div class="field">
+      <label>שעה</label>
+      <input type="time" id="inp-time">
+      <button class="btn-now" onclick="setNow()">⏱ עכשיו</button>
+    </div>
+    <div class="field">
+      <label>אירוע</label>
+      <select id="inp-type">
+        <option value="wake">☀️ קימה</option>
+        <option value="yawn">😮 פיהוק ראשון</option>
+        <option value="sleep">🌙 הרדמות</option>
+        <option value="feed">🤱 ינק</option>
+        <option value="cry">😢 בכי</option>
+        <option value="poop">💩 קקי</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>הערה</label>
+      <input type="text" id="inp-note" placeholder="מנשא, אוטו...">
+    </div>
+    <button class="btn-add" onclick="addEntry()">+ הוסף</button>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="page-dashboard" class="page active">
+    <div class="stats-grid" id="dash-stats"></div>
+    <div class="section-hdr"><h2>🌙 ציר הזמן — היום האחרון</h2></div>
+    <div id="dash-timeline"></div>
+    <div class="section-hdr"><h2>💡 תובנות</h2></div>
+    <div class="insight-cards" id="dash-insights"></div>
+    <div class="section-hdr"><h2>📋 רשומות אחרונות</h2></div>
+    <div id="dash-recent"></div>
+  </div>
+
+  <!-- LOG -->
+  <div id="page-log" class="page">
+    <div id="log-content"></div>
+  </div>
+
+  <!-- STATS -->
+  <div id="page-stats" class="page">
+    <div class="stats-grid" id="stats-cards"></div>
+
+    <!-- CHART 1: Wake windows per day -->
+    <div class="section-hdr"><h2>📊 חלוני ערות לאורך זמן</h2></div>
+    <div class="section-explain">
+      <strong>חלון ערות</strong> = הזמן שהתינוק ער בין שתי שינות. בגיל 3 חודשים הטווח התקין הוא <strong>45–90 דקות</strong>.
+      חלון קצר מדי (מתחת ל-30ד׳) עלול להצביע על עייפות-על, חלון ארוך מדי (מעל 90ד׳) עלול להקשות על ההרדמות.
+    </div>
+    <div class="chart-card" id="chart-ww"></div>
+
+    <!-- CHART 2: Sleep durations per day -->
+    <div class="section-hdr"><h2>🌙 אורך שינות לפי יום</h2></div>
+    <div class="section-explain">
+      <strong>פרקי שינה</strong> — כל עמודה מייצגת יום. הגובה = ממוצע אורך פרק שינה באותו יום.
+      תינוק בן 3 חודשים ישן בדרך כלל 2–4 שינות ביום, כל אחת 45–120 דקות.
+    </div>
+    <div class="chart-card" id="chart-sleep"></div>
+
+    <!-- CHART 3: WW distribution -->
+    <div class="section-hdr"><h2>📐 התפלגות חלוני ערות</h2></div>
+    <div class="ww-dist" id="ww-dist"></div>
+
+    <!-- CHART 4: Day comparison table -->
+    <div class="section-hdr"><h2>📅 השוואה בין ימים</h2></div>
+    <div class="section-explain">
+      השוואה מלאה בין כל הימים שנרשמו. 🟢 = הכי טוב, 🔴 = הכי פחות טוב.
+    </div>
+    <div class="per-day-table" id="per-day"></div>
+  </div>
+
+</div>
+</div>
+
+<script>
+const EV={
+  wake:{label:'☀️ קימה',dot:'ev-dot-wake'},
+  yawn:{label:'😮 פיהוק',dot:'ev-dot-yawn'},
+  sleep:{label:'🌙 הרדמות',dot:'ev-dot-sleep'},
+  feed:{label:'🤱 ינק',dot:'ev-dot-feed'},
+  cry:{label:'😢 בכי',dot:'ev-dot-cry'},
+  poop:{label:'💩 קקי',dot:'ev-dot-poop'},
+};
+
+const SEED=[
+  {d:'2025-05-04',t:'18:45',type:'wake',note:''},{d:'2025-05-04',t:'19:04',type:'yawn',note:''},{d:'2025-05-04',t:'19:40',type:'cry',note:'כניסה למנשא'},{d:'2025-05-04',t:'20:00',type:'sleep',note:''},
+  {d:'2025-05-05',t:'06:37',type:'wake',note:''},{d:'2025-05-05',t:'07:17',type:'yawn',note:''},{d:'2025-05-05',t:'07:45',type:'cry',note:'קיטור'},{d:'2025-05-05',t:'07:50',type:'sleep',note:'מנשא'},{d:'2025-05-05',t:'09:15',type:'wake',note:''},{d:'2025-05-05',t:'09:44',type:'yawn',note:''},{d:'2025-05-05',t:'10:10',type:'sleep',note:'אוטו'},{d:'2025-05-05',t:'11:09',type:'yawn',note:''},{d:'2025-05-05',t:'11:50',type:'sleep',note:''},{d:'2025-05-05',t:'13:30',type:'wake',note:''},{d:'2025-05-05',t:'13:56',type:'yawn',note:''},{d:'2025-05-05',t:'14:55',type:'sleep',note:''},{d:'2025-05-05',t:'15:45',type:'wake',note:''},{d:'2025-05-05',t:'16:06',type:'yawn',note:''},{d:'2025-05-05',t:'16:30',type:'cry',note:''},{d:'2025-05-05',t:'17:35',type:'sleep',note:''},{d:'2025-05-05',t:'17:55',type:'wake',note:'ינק'},{d:'2025-05-05',t:'18:37',type:'yawn',note:''},{d:'2025-05-05',t:'20:30',type:'sleep',note:''},
+  {d:'2025-05-06',t:'02:45',type:'wake',note:'ינק לילה'},{d:'2025-05-06',t:'03:17',type:'sleep',note:''},{d:'2025-05-06',t:'05:41',type:'wake',note:'ינק'},{d:'2025-05-06',t:'08:42',type:'yawn',note:''},{d:'2025-05-06',t:'09:55',type:'sleep',note:''},{d:'2025-05-06',t:'10:20',type:'wake',note:''},{d:'2025-05-06',t:'10:30',type:'yawn',note:''},{d:'2025-05-06',t:'10:43',type:'sleep',note:''},{d:'2025-05-06',t:'12:55',type:'wake',note:''},{d:'2025-05-06',t:'13:35',type:'sleep',note:''},{d:'2025-05-06',t:'14:10',type:'wake',note:''},{d:'2025-05-06',t:'14:44',type:'yawn',note:''},{d:'2025-05-06',t:'15:37',type:'sleep',note:''},{d:'2025-05-06',t:'16:44',type:'wake',note:''},{d:'2025-05-06',t:'18:08',type:'sleep',note:''},{d:'2025-05-06',t:'18:50',type:'wake',note:''},{d:'2025-05-06',t:'20:28',type:'sleep',note:''},
+  {d:'2025-05-07',t:'04:30',type:'wake',note:'ינק לילה'},{d:'2025-05-07',t:'05:00',type:'sleep',note:''},{d:'2025-05-07',t:'07:48',type:'wake',note:''},{d:'2025-05-07',t:'08:15',type:'yawn',note:''},{d:'2025-05-07',t:'09:08',type:'sleep',note:''},{d:'2025-05-07',t:'10:08',type:'wake',note:''},{d:'2025-05-07',t:'11:34',type:'sleep',note:''},{d:'2025-05-07',t:'12:23',type:'wake',note:''},{d:'2025-05-07',t:'14:45',type:'sleep',note:''},{d:'2025-05-07',t:'15:32',type:'wake',note:''},{d:'2025-05-07',t:'17:43',type:'sleep',note:''},{d:'2025-05-07',t:'22:35',type:'wake',note:'ינק וקקי'},{d:'2025-05-07',t:'23:34',type:'sleep',note:''},
+  {d:'2025-05-08',t:'03:30',type:'wake',note:'ינק לילה'},{d:'2025-05-08',t:'04:15',type:'sleep',note:''},{d:'2025-05-08',t:'06:42',type:'wake',note:'ינק + פוקים'},{d:'2025-05-08',t:'08:11',type:'sleep',note:''},{d:'2025-05-08',t:'08:47',type:'wake',note:''},{d:'2025-05-08',t:'09:45',type:'sleep',note:''},{d:'2025-05-08',t:'13:05',type:'wake',note:''},{d:'2025-05-08',t:'14:04',type:'sleep',note:''},{d:'2025-05-08',t:'14:23',type:'wake',note:''},{d:'2025-05-08',t:'14:44',type:'yawn',note:''},{d:'2025-05-08',t:'16:10',type:'sleep',note:''},{d:'2025-05-08',t:'17:09',type:'wake',note:'ינק'},{d:'2025-05-08',t:'17:48',type:'yawn',note:''},{d:'2025-05-08',t:'18:20',type:'sleep',note:''},{d:'2025-05-08',t:'19:00',type:'wake',note:''},{d:'2025-05-08',t:'21:00',type:'sleep',note:''},
+  {d:'2025-05-09',t:'05:25',type:'wake',note:'ינק לילה'},{d:'2025-05-09',t:'05:45',type:'sleep',note:''},{d:'2025-05-09',t:'08:30',type:'wake',note:''},{d:'2025-05-09',t:'09:00',type:'yawn',note:''},{d:'2025-05-09',t:'10:14',type:'sleep',note:''},{d:'2025-05-09',t:'10:52',type:'wake',note:'קקי'},{d:'2025-05-09',t:'11:24',type:'yawn',note:''},
+];
+
+let entries=[], openDays=new Set();
+
+function load(){const s=localStorage.getItem('bst_v4');if(s)entries=JSON.parse(s);else{entries=SEED.map((e,i)=>({...e,id:i+1}));save();}}
+function save(){localStorage.setItem('bst_v4',JSON.stringify(entries));}
+
+const toMin=t=>{const[h,m]=t.split(':').map(Number);return h*60+m;};
+const fmtDur=m=>m<60?m+'ד׳':Math.floor(m/60)+'ש׳'+(m%60?' '+(m%60)+'ד׳':'');
+const avg=a=>a.length?Math.round(a.reduce((s,x)=>s+x,0)/a.length):0;
+const HE_DAYS=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+function heDate(d){const dt=new Date(d+'T12:00:00');return `${dt.getDate()}/${dt.getMonth()+1} (${HE_DAYS[dt.getDay()]})`;}
+function heDateShort(d){const dt=new Date(d+'T12:00:00');return `${dt.getDate()}/${dt.getMonth()+1}`;}
+
+function groupByDay(arr){
+  const map={};
+  arr.forEach(e=>{if(!map[e.d])map[e.d]=[];map[e.d].push(e);});
+  for(const k in map)map[k].sort((a,b)=>a.t.localeCompare(b.t));
+  return map;
+}
+
+function getWakeWindows(evs){
+  const wws=[];
+  evs.forEach((e,i)=>{
+    if(e.type==='sleep'){
+      const prev=[...evs].slice(0,i).reverse().find(x=>x.type==='wake');
+      if(prev){const d=toMin(e.t)-toMin(prev.t);if(d>0&&d<360)wws.push(d);}
+    }
+  });
+  return wws;
+}
+
+function getSleepDurs(evs){
+  const durs=[];
+  evs.forEach((e,i)=>{
+    if(e.type==='wake'){
+      const prev=[...evs].slice(0,i).reverse().find(x=>x.type==='sleep');
+      if(prev){const d=toMin(e.t)-toMin(prev.t);if(d>0&&d<720)durs.push(d);}
+    }
+  });
+  return durs;
+}
+
+function wwClass(m){return m<30?'short':m>90?'long':'ok';}
+
+// ═══ CLOCK ═══
+function tickClock(){const n=new Date();const p=x=>String(x).padStart(2,'0');document.getElementById('live-clock').textContent=`${p(n.getHours())}:${p(n.getMinutes())}`;}
+function updateAge(){const birth=new Date('2025-02-09');const now=new Date();const weeks=Math.floor((now-birth)/(7*24*60*60*1000));const days=Math.floor((now-birth)/(24*60*60*1000))%7;document.getElementById('baby-age').textContent=`${weeks} שבועות${days?' ו-'+days+' ימים':''}`;}
+
+// ═══ NAV ═══
+let currentPage='dashboard';
+function nav(name,e){
+  currentPage=name;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  if(e&&e.target)e.target.classList.add('active');
+  renderPage(name);
+}
+function renderPage(n){if(n==='dashboard')renderDashboard();if(n==='log')renderLog();if(n==='stats')renderStats();}
+
+// ═══ TIMELINE ═══
+function buildTimeline(evs,dayStr){
+  const TOTAL=24*60;
+  let html=`<div class="tl-wrap"><div class="tl-label">${dayStr}</div><div class="tl-bar">`;
+  for(let i=0;i<evs.length-1;i++){
+    const cur=evs[i],nxt=evs[i+1];
+    const s=Math.max(0,toMin(cur.t))/TOTAL*100;
+    const w=Math.max(0,(toMin(nxt.t)-toMin(cur.t)))/TOTAL*100;
+    const cls=cur.type==='sleep'?'s-sleep':'s-wake';
+    html+=`<div class="tl-seg ${cls}" style="left:${s.toFixed(2)}%;width:${w.toFixed(2)}%" title="${cur.t}→${nxt.t}"></div>`;
+  }
+  evs.forEach(e=>{
+    if(['yawn','cry','poop','feed'].includes(e.type)){
+      const left=toMin(e.t)/TOTAL*100;
+      html+=`<div class="tl-dot d-${e.type}" style="left:${left.toFixed(2)}%" title="${EV[e.type].label} ${e.t}${e.note?' ('+e.note+')':''}"></div>`;
+    }
+  });
+  html+=`</div><div class="tl-hours">`;
+  for(let h=0;h<=24;h+=3)html+=`<span>${h}</span>`;
+  html+=`</div></div>`;
+  return html;
+}
+
+// ═══ SVG BAR CHART ═══
+function svgBarChart(data, opts){
+  const W=Math.max(500, data.length*72);
+  const H=200, PAD={top:16,bottom:44,left:48,right:16};
+  const innerW=W-PAD.left-PAD.right;
+  const innerH=H-PAD.top-PAD.bottom;
+  const maxV=Math.max(...data.flatMap(d=>d.values.map(v=>v.v)),1);
+  const BAR_W=Math.min(36, innerW/data.length/1.6);
+  const GROUP_W=innerW/data.length;
+
+  const TITLE_H = opts&&opts.yTitle ? 20 : 0;
+  let svg=`<svg class="line-chart" width="${W}" height="${H + TITLE_H}" viewBox="0 0 ${W} ${H + TITLE_H}">`;
+
+  // Y axis title (rotated)
+  if(opts&&opts.yTitle){
+    svg+=`<text transform="rotate(-90)" x="${-(PAD.top+innerH/2+TITLE_H)}" y="12" font-size="10" fill="#5a6280" text-anchor="middle" font-family="Rubik,sans-serif">${opts.yTitle}</text>`;
+  }
+  // X axis title
+  if(opts&&opts.xTitle){
+    svg+=`<text x="${PAD.left+innerW/2}" y="${H+TITLE_H-2}" font-size="10" fill="#5a6280" text-anchor="middle" font-family="Rubik,sans-serif">${opts.xTitle}</text>`;
+  }
+
+  // Y grid lines + labels
+  for(let i=0;i<=4;i++){
+    const y=PAD.top+innerH*(1-i/4);
+    const val=Math.round(maxV*i/4);
+    svg+=`<line x1="${PAD.left}" x2="${W-PAD.right}" y1="${y}" y2="${y}" stroke="${i===0?'#2e3550':'#1c2030'}" stroke-width="${i===0?1.5:1}"/>`;
+    svg+=`<text x="${PAD.left-6}" y="${y+4}" font-size="10" fill="#5a6280" text-anchor="end" font-family="DM Mono,monospace">${fmtDur(val)}</text>`;
+  }
+
+  // Reference lines
+  if(opts&&opts.refs){
+    opts.refs.forEach(r=>{
+      if(r.v>maxV)return;
+      const y=PAD.top+innerH*(1-r.v/maxV);
+      svg+=`<line x1="${PAD.left}" x2="${W-PAD.right}" y1="${y}" y2="${y}" stroke="${r.color}" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.7"/>`;
+      svg+=`<rect x="${W-PAD.right-32}" y="${y-10}" width="30" height="13" rx="3" fill="${r.color}" opacity="0.15"/>`;
+      svg+=`<text x="${W-PAD.right-17}" y="${y-1}" font-size="9" fill="${r.color}" text-anchor="middle" font-family="DM Mono,monospace" font-weight="600">${r.label}</text>`;
+    });
+  }
+
+  // Bars with value labels on top
+  data.forEach((grp,gi)=>{
+    const cx=PAD.left+GROUP_W*(gi+0.5);
+    const totalBars=grp.values.filter(b=>b.v>0).length;
+    let bi2=0;
+    grp.values.forEach((bar)=>{
+      if(bar.v===0)return;
+      const barH=Math.max(3, innerH*bar.v/maxV);
+      const x=cx-(totalBars*BAR_W/2)-(totalBars>1?2:0)+(bi2*(BAR_W+3));
+      const y=PAD.top+innerH-barH;
+      // bar body
+      svg+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${BAR_W}" height="${barH.toFixed(1)}" rx="4" fill="${bar.color}" opacity="0.88"/>`;
+      // value label above bar
+      if(barH>12){
+        svg+=`<text x="${(x+BAR_W/2).toFixed(1)}" y="${(y-4).toFixed(1)}" font-size="10" fill="${bar.color}" text-anchor="middle" font-family="DM Mono,monospace" font-weight="600">${fmtDur(bar.v)}</text>`;
+      }
+      bi2++;
+    });
+    // x axis label
+    svg+=`<text x="${cx}" y="${H-20}" font-size="11" fill="#5a6280" text-anchor="middle" font-family="DM Mono,monospace">${grp.label}</text>`;
+    // day of week below
+    if(grp.dow){
+      svg+=`<text x="${cx}" y="${H-6}" font-size="9" fill="#3a4260" text-anchor="middle" font-family="Rubik,sans-serif">${grp.dow}</text>`;
+    }
+  });
+
+  svg+=`</svg>`;
+  return `<div class="line-chart-wrap" style="overflow-x:auto">${svg}</div>`;
+}
+
+// ═══ DASHBOARD ═══
+function renderDashboard(){
+  const days=groupByDay(entries);
+  const sortedDays=Object.keys(days).sort();
+  let allWW=[],allSleep=[],allYts=[];
+  sortedDays.forEach(d=>{
+    const evs=days[d];
+    allWW.push(...getWakeWindows(evs));
+    allSleep.push(...getSleepDurs(evs));
+    evs.forEach((e,i)=>{
+      if(e.type==='yawn'){const ns=evs.slice(i+1).find(x=>x.type==='sleep');if(ns){const d2=toMin(ns.t)-toMin(e.t);if(d2>0&&d2<120)allYts.push(d2);}}
+    });
+  });
+
+  let nightSleep=0;
+  const lastDay=sortedDays[sortedDays.length-1];
+  if(lastDay){
+    const prevDay=sortedDays[sortedDays.length-2];
+    const nightEvs=[...(prevDay?days[prevDay].filter(e=>toMin(e.t)>=18*60):[]),...days[lastDay].filter(e=>toMin(e.t)<=9*60)].sort((a,b)=>a.t.localeCompare(b.t));
+    nightEvs.forEach((e,i)=>{if(e.type==='wake'){const prev=[...nightEvs].slice(0,i).reverse().find(x=>x.type==='sleep');if(prev){const d2=toMin(e.t)-toMin(prev.t);if(d2>0&&d2<720)nightSleep+=d2;}}});
+  }
+
+  const avgWW=avg(allWW),avgSl=avg(allSleep),avgYts=avg(allYts);
+
+  document.getElementById('dash-stats').innerHTML=`
+    <div class="stat-card c-moon">
+      <div class="stat-icon">🌙</div>
+      <div class="stat-val">${fmtDur(avgSl||0)}</div>
+      <div class="stat-lbl">שינה ממוצעת</div>
+      <div class="stat-sub">לפרק שינה</div>
+      <div class="stat-explain">כמה זמן ישן בממוצע בכל פרק. תקין: 45–120ד׳</div>
+    </div>
+    <div class="stat-card c-sun">
+      <div class="stat-icon">☀️</div>
+      <div class="stat-val">${fmtDur(avgWW||0)}</div>
+      <div class="stat-lbl">חלון ערות ממוצע</div>
+      <div class="stat-sub">${allWW.length} מדידות</div>
+      <div class="stat-explain">זמן ער בין שינות. תקין בגיל 3 חודשים: 45–90ד׳</div>
+    </div>
+    <div class="stat-card c-yawn">
+      <div class="stat-icon">😮</div>
+      <div class="stat-val">${fmtDur(avgYts||0)}</div>
+      <div class="stat-lbl">פיהוק → שינה</div>
+      <div class="stat-sub">זמן הרדמות</div>
+      <div class="stat-explain">כמה זמן לוקח מהפיהוק הראשון להרדמות. מתחת ל-20ד׳ = טוב</div>
+    </div>
+    <div class="stat-card c-feed">
+      <div class="stat-icon">🌛</div>
+      <div class="stat-val">${fmtDur(nightSleep||0)}</div>
+      <div class="stat-lbl">שינת לילה</div>
+      <div class="stat-sub">אמש (18:00–09:00)</div>
+      <div class="stat-explain">סך שינה בשעות הלילה</div>
+    </div>`;
+
+  if(lastDay&&days[lastDay]){
+    document.getElementById('dash-timeline').innerHTML=
+      `<div class="day-card" style="overflow:hidden">`+buildTimeline(days[lastDay],heDate(lastDay))+
+      `<div style="display:flex;gap:16px;padding:0 16px 14px;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px"><span style="display:inline-block;width:12px;height:8px;background:rgba(91,141,238,.55);border-radius:2px"></span>שינה</span>
+        <span style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px"><span style="display:inline-block;width:12px;height:8px;background:rgba(245,167,66,.2);border-radius:2px"></span>ערות</span>
+        <span style="font-size:11px;color:var(--yawn);display:flex;align-items:center;gap:5px">● פיהוק</span>
+        <span style="font-size:11px;color:var(--cry);display:flex;align-items:center;gap:5px">● בכי</span>
+      </div></div>`;
+  }
+
+  const insights=[];
+  if(avgWW>0&&avgWW<30)insights.push({icon:'⚠️',cls:'ii-warn',title:'חלונות ערות קצרים',body:`ממוצע ${fmtDur(avgWW)} — מתחת ל-30ד׳. ייתכן overtired.`});
+  else if(avgWW>=30&&avgWW<=90)insights.push({icon:'✅',cls:'ii-ok',title:'חלונות ערות תקינים',body:`ממוצע ${fmtDur(avgWW)} — בטווח הנורמלי לגיל 3 חודשים.`});
+  else if(avgWW>90)insights.push({icon:'⏳',cls:'ii-sun',title:'חלונות ערות ארוכים',body:`ממוצע ${fmtDur(avgWW)} — מעל 90ד׳. אפשר לנסות להכניס מוקדם יותר.`});
+  if(avgYts>0&&avgYts<=20)insights.push({icon:'😴',cls:'ii-moon',title:'הרדמות מהירה',body:`${fmtDur(avgYts)} מפיהוק להרדמות — סימן שנלקח בזמן.`});
+  else if(avgYts>30)insights.push({icon:'⏳',cls:'ii-sun',title:'הרדמות אטית',body:`${fmtDur(avgYts)} מפיהוק — אפשר לנסות להכניס קצת קודם.`});
+  const nightWakes=entries.filter(e=>e.type==='wake'&&(toMin(e.t)<6*60||toMin(e.t)>=22*60)).length;
+  const avgNW=sortedDays.length?(nightWakes/sortedDays.length).toFixed(1):'—';
+  insights.push({icon:'🌛',cls:'ii-moon',title:`יקיצות לילה: ~${avgNW} ללילה`,body:'נורמלי לגיל 3 חודשים. רוב הלילות יקיצה אחת–שתיים לינוק.'});
+
+  document.getElementById('dash-insights').innerHTML=insights.map(ins=>`
+    <div class="insight-card">
+      <div class="insight-icon ${ins.cls}">${ins.icon}</div>
+      <div class="insight-text"><div class="insight-title">${ins.title}</div><div class="insight-body">${ins.body}</div></div>
+    </div>`).join('');
+
+  const recent=[...entries].sort((a,b)=>b.d.localeCompare(a.d)||b.t.localeCompare(a.t)).slice(0,10);
+  document.getElementById('dash-recent').innerHTML=buildEntriesTable(recent,false);
+}
+
+// ═══ LOG ═══
+function renderLog(){
+  const days=groupByDay(entries);
+  const sortedDays=Object.keys(days).sort().reverse();
+  if(!sortedDays.length){document.getElementById('log-content').innerHTML='<div class="empty"><div class="empty-icon">🌙</div><div>אין רשומות עדיין</div></div>';return;}
+  let html='';
+  sortedDays.forEach(day=>{
+    const evs=days[day];
+    const wws=getWakeWindows(evs);
+    const avgWW=wws.length?avg(wws):null;
+    const sleeps=evs.filter(e=>e.type==='sleep').length;
+    const wwCls=avgWW?(avgWW<30?'pill-short':avgWW>90?'pill-long':'pill-ok'):'';
+    const isOpen=openDays.has(day);
+    html+=`<div class="day-card ${isOpen?'open':''}" id="dc-${day}">
+      <div class="day-card-hdr" onclick="toggleDay('${day}')">
+        <span class="day-title">${heDate(day)}</span>
+        <div class="day-meta">
+          <span class="pill pill-moon">${sleeps} שינות</span>
+          ${avgWW?`<span class="pill ${wwCls}">חלון: ${fmtDur(avgWW)}</span>`:''}
+          <span class="chevron">▼</span>
+        </div>
+      </div>
+      <div class="day-body">
+        ${buildTimeline(evs,'')}
+        ${buildEntriesTable(evs,true)}
+      </div>
+    </div>`;
+  });
+  document.getElementById('log-content').innerHTML=html;
+}
+
+function toggleDay(day){
+  if(openDays.has(day))openDays.delete(day);else openDays.add(day);
+  const card=document.getElementById('dc-'+day);
+  if(card)card.classList.toggle('open');
+}
+
+function buildEntriesTable(evs,showDel){
+  let html=`<table class="ev-table"><thead><tr><th>שעה</th><th>אירוע</th><th>הערה</th><th>מידע</th>${showDel?'<th></th>':''}</tr></thead><tbody>`;
+  const sorted=[...evs].sort((a,b)=>a.d.localeCompare(b.d)||a.t.localeCompare(b.t));
+  sorted.forEach(e=>{
+    const dayEvs=evs.filter(x=>x.d===e.d).sort((a,b)=>a.t.localeCompare(b.t));
+    const idx=dayEvs.findIndex(x=>x.id===e.id);
+    let info='';
+    if(idx>0){
+      const prev=dayEvs[idx-1];
+      const dur=toMin(e.t)-toMin(prev.t);
+      if(dur>0&&dur<600){
+        if(e.type==='wake'&&prev.type==='sleep')info=`<span class="info-chip ic-dur">🌙 ${fmtDur(dur)}</span>`;
+        else if(e.type==='sleep'&&prev.type==='wake'){const cls=wwClass(dur);info=`<span class="info-chip ic-ww-${cls}">חלון ${fmtDur(dur)}</span>`;}
+        else if(e.type==='yawn'){const lw=[...dayEvs].slice(0,idx).reverse().find(x=>x.type==='wake');if(lw){const ww=toMin(e.t)-toMin(lw.t);if(ww>0&&ww<300){const cls2=wwClass(ww);info=`<span class="info-chip ic-ww-${cls2}">פיהוק בעוד ${fmtDur(ww)}</span>`;}}}
+      }
+    }
+    html+=`<tr><td class="time-cell">${e.t}</td><td><span class="event-badge"><span class="ev-dot ${EV[e.type]?.dot||''}"></span>${EV[e.type]?.label||e.type}</span></td><td><span class="note-text">${e.note||''}</span></td><td>${info}</td>${showDel?`<td><button class="del-btn" onclick="delEntry(${e.id})">✕</button></td>`:''}</tr>`;
+  });
+  html+=`</tbody></table>`;
+  return html;
+}
+
+// ═══ STATS ═══
+function renderStats(){
+  const days=groupByDay(entries);
+  const sortedDays=Object.keys(days).sort();
+  let allWW=[],allSleep=[];
+  const perDay=[];
+
+  sortedDays.forEach(d=>{
+    const evs=days[d];
+    const wws=getWakeWindows(evs);
+    const sls=getSleepDurs(evs);
+    allWW.push(...wws);
+    allSleep.push(...sls);
+    perDay.push({
+      d,
+      sleeps:evs.filter(e=>e.type==='sleep').length,
+      avgWW:wws.length?avg(wws):null,
+      avgSl:sls.length?avg(sls):null,
+      minSl:sls.length?Math.min(...sls):null,
+      maxSl:sls.length?Math.max(...sls):null,
+      totalSl:sls.reduce((a,b)=>a+b,0),
+      nightWakes:evs.filter(e=>e.type==='wake'&&(toMin(e.t)<6*60||toMin(e.t)>=22*60)).length,
+    });
+  });
+
+  const avgWW=avg(allWW),avgSl=avg(allSleep);
+  const totalSleeps=entries.filter(e=>e.type==='sleep').length;
+
+  // ---- Stat cards ----
+  document.getElementById('stats-cards').innerHTML=`
+    <div class="stat-card c-moon">
+      <div class="stat-icon">🌙</div><div class="stat-val">${fmtDur(avgSl)}</div>
+      <div class="stat-lbl">שינה ממוצעת</div>
+      <div class="stat-sub">${allSleep.length?fmtDur(Math.min(...allSleep)):''} – ${allSleep.length?fmtDur(Math.max(...allSleep)):''}</div>
+      <div class="stat-explain">טווח כל פרקי השינה שנרשמו</div>
+    </div>
+    <div class="stat-card c-sun">
+      <div class="stat-icon">☀️</div><div class="stat-val">${fmtDur(avgWW)}</div>
+      <div class="stat-lbl">חלון ערות ממוצע</div>
+      <div class="stat-sub">${allWW.length} מדידות</div>
+      <div class="stat-explain">תקין לגיל 3 חודשים: 45–90ד׳</div>
+    </div>
+    <div class="stat-card c-yawn">
+      <div class="stat-icon">📊</div><div class="stat-val">${totalSleeps}</div>
+      <div class="stat-lbl">סה"כ שינות</div>
+      <div class="stat-sub">${sortedDays.length} ימים</div>
+      <div class="stat-explain">ממוצע ${sortedDays.length?Math.round(totalSleeps/sortedDays.length):0} שינות ליום</div>
+    </div>
+    <div class="stat-card c-feed">
+      <div class="stat-icon">🌛</div>
+      <div class="stat-val">${perDay.length?Math.round(perDay.reduce((s,d)=>s+d.nightWakes,0)/perDay.length*10)/10:'—'}</div>
+      <div class="stat-lbl">יקיצות לילה</div>
+      <div class="stat-sub">ממוצע ללילה</div>
+      <div class="stat-explain">יקיצות בין 22:00–06:00. נורמלי: 1–3</div>
+    </div>`;
+
+  // ---- Chart 1: Wake windows per day ----
+  const wwChartData=perDay.map(d=>{
+    const dt=new Date(d.d+'T12:00:00');
+    const dow=HE_DAYS[dt.getDay()];
+    return {
+      label: heDateShort(d.d),
+      dow,
+      values: d.avgWW ? [{
+        v: d.avgWW,
+        color: d.avgWW<30?'#FFB800':d.avgWW>90?'#FF3B5C':'#00E096',
+        name: `חלון ממוצע ${heDateShort(d.d)}`
+      }] : [{v:0,color:'#232840',name:'אין נתונים'}]
+    };
+  });
+
+  document.getElementById('chart-ww').innerHTML=`
+    <h3>חלון ערות ממוצע לפי יום</h3>
+    <div class="chart-desc">🟢 45–90ד׳ = תקין &nbsp;|&nbsp; 🟡 פחות מ-30ד׳ = קצר &nbsp;|&nbsp; 🔴 יותר מ-90ד׳ = ארוך</div>
+    ${svgBarChart(wwChartData,{yTitle:'דקות ערות',xTitle:'תאריך',refs:[{v:45,color:'#42d9a0',label:'45ד׳ מינימום'},{v:90,color:'#f5617a',label:'90ד׳ מקסימום'}]})}
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#00E096"></div>✅ תקין (45–90ד׳)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#FFB800"></div>⚠️ קצר מ-30ד׳</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#FF3B5C"></div>🔴 ארוך מ-90ד׳</div>
+    </div>`;
+
+  // ---- Chart 2: Sleep duration per day (avg + max) ----
+  const slChartData=perDay.map(d=>{
+    const dt=new Date(d.d+'T12:00:00');
+    const dow=HE_DAYS[dt.getDay()];
+    return {
+      label: heDateShort(d.d),
+      dow,
+      values: [
+        {v:d.avgSl||0, color:'#5B8DEE', name:`ממוצע ${heDateShort(d.d)}`},
+        {v:d.maxSl||0, color:'#C084FC', name:`מקסימום ${heDateShort(d.d)}`},
+      ]
+    };
+  });
+
+  document.getElementById('chart-sleep').innerHTML=`
+    <h3>אורך פרקי שינה לפי יום</h3>
+    <div class="chart-desc">עמודה כהה = ממוצע פרק שינה | עמודה בהירה = הפרק הארוך ביותר באותו יום</div>
+    ${svgBarChart(slChartData,{yTitle:'דקות שינה',xTitle:'תאריך',refs:[{v:45,color:'#5b8dee',label:'45ד׳ מינימום'},{v:120,color:'#b07ef5',label:'120ד׳ אידיאל'}]})}
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#5B8DEE"></div>🔵 ממוצע פרק שינה</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#C084FC"></div>🟣 שינה הארוכה ביום</div>
+    </div>`;
+
+  // ---- WW distribution ----
+  const short=allWW.filter(w=>w<30).length;
+  const norm=allWW.filter(w=>w>=30&&w<=90).length;
+  const long=allWW.filter(w=>w>90).length;
+  const total=allWW.length||1;
+  const pShort=Math.round(short/total*100),pNorm=Math.round(norm/total*100),pLong=Math.round(long/total*100);
+
+  document.getElementById('ww-dist').innerHTML=`
+    <h3>התפלגות חלוני ערות (${allWW.length} מדידות)</h3>
+    <div class="ww-dist-desc">כמה מהחלונות נפלו בכל קטגוריה. אידיאלי: רוב הקטגוריות ב"נורמלי".</div>
+    <div class="ww-bar-wrap">
+      <div class="ww-bar-label"><span>⚡ קצר מ-30ד׳ — ייתכן overtired</span><span>${short} (${pShort}%)</span></div>
+      <div class="ww-bar-track"><div class="ww-bar-fill" style="width:${pShort}%;background:var(--sun)"></div></div>
+    </div>
+    <div class="ww-bar-wrap">
+      <div class="ww-bar-label"><span>✅ נורמלי 30–90ד׳</span><span>${norm} (${pNorm}%)</span></div>
+      <div class="ww-bar-track"><div class="ww-bar-fill" style="width:${pNorm}%;background:var(--feed)"></div></div>
+    </div>
+    <div class="ww-bar-wrap">
+      <div class="ww-bar-label"><span>🔴 ארוך מ-90ד׳ — ייתכן עייפות</span><span>${long} (${pLong}%)</span></div>
+      <div class="ww-bar-track"><div class="ww-bar-fill" style="width:${pLong}%;background:var(--cry)"></div></div>
+    </div>`;
+
+  // ---- Comparison table ----
+  const bestWW=perDay.filter(d=>d.avgWW).reduce((b,d)=>(!b||Math.abs(d.avgWW-67)<Math.abs(b.avgWW-67)?d:b),null);
+  const bestSl=perDay.filter(d=>d.avgSl).reduce((b,d)=>(!b||d.avgSl>b.avgSl?d:b),null);
+  const mostSleeps=perDay.reduce((b,d)=>(!b||d.sleeps>b.sleeps?d:b),null);
+  const leastNW=perDay.reduce((b,d)=>(!b||d.nightWakes<b.nightWakes?d:b),null);
+
+  let rows='';
+  [...perDay].reverse().forEach(d=>{
+    const wwCls=d.avgWW?(d.avgWW<30?'pill-short':d.avgWW>90?'pill-long':'pill-ok'):'';
+    const isBestWW=bestWW&&d.d===bestWW.d;
+    const isBestSl=bestSl&&d.d===bestSl.d;
+    const isBestNW=leastNW&&d.d===leastNW.d;
+    rows+=`<tr ${isBestWW?'class="cmp-row-best"':''}>
+      <td><strong>${heDate(d.d)}</strong></td>
+      <td style="text-align:center">${d.sleeps}</td>
+      <td>${d.avgWW?`<span class="pill ${wwCls}">${fmtDur(d.avgWW)}</span>${isBestWW?' 🏆':''}`:'-'}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:11px">${d.avgSl?fmtDur(d.avgSl)+(isBestSl?' 🏆':''):'-'}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:11px">${d.maxSl?fmtDur(d.maxSl):'-'}</td>
+      <td style="text-align:center">${d.nightWakes}${isBestNW?' 🏆':''}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--moon)">${d.totalSl?fmtDur(d.totalSl):'-'}</td>
+    </tr>`;
+  });
+
+  document.getElementById('per-day').innerHTML=`
+    <table>
+      <thead><tr>
+        <th>תאריך</th><th>שינות</th><th>חלון ממוצע</th><th>שינה ממוצעת</th><th>שינה ארוכה</th><th>יקיצות לילה</th><th>סה"כ שינה ביום</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div style="padding:10px 16px;font-size:10px;color:var(--dim)">🏆 = הכי טוב</div>`;
+}
+
+// ═══ ADD / DELETE ═══
+function addEntry(){
+  const d=document.getElementById('inp-date').value;
+  const t=document.getElementById('inp-time').value;
+  const type=document.getElementById('inp-type').value;
+  const note=document.getElementById('inp-note').value.trim();
+  if(!d||!t){alert('נא למלא תאריך ושעה');return;}
+  entries.push({d,t,type,note,id:Date.now()});
+  save();
+  document.getElementById('inp-note').value='';
+  renderPage(currentPage);
+}
+
+function delEntry(id){entries=entries.filter(e=>e.id!==id);save();renderPage(currentPage);}
+
+function setNow(){
+  const n=new Date();const p=x=>String(x).padStart(2,'0');
+  document.getElementById('inp-date').value=`${n.getFullYear()}-${p(n.getMonth()+1)}-${p(n.getDate())}`;
+  document.getElementById('inp-time').value=`${p(n.getHours())}:${p(n.getMinutes())}`;
+}
+
+// ═══ LOVE MESSAGE ═══
+const LOVE_MSGS = [
+  "מאמא את הכי טובה 💙",
+  "יאללה איזה אמא בחרתי לו 🥹",
+  "למרות שנאמנם לא מנומנאמנם הוא עדיין חמוד הא? 😂",
+  "אוהב אותך יא פשושי ❤️",
+  "נאמנאם המלך בשכונה 👑"
+];
+
+function showLoveMessage(){
+  const msg = LOVE_MSGS[Math.floor(Math.random()*LOVE_MSGS.length)];
+  const overlay = document.createElement('div');
+  overlay.setAttribute('id','love-overlay');
+  overlay.setAttribute('style',
+    'position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;'+
+    'background:rgba(8,9,13,0.95);'+
+    'display:flex;align-items:center;justify-content:center;cursor:pointer;'
+  );
+  overlay.innerHTML =
+    '<div style="text-align:center;padding:40px 32px;max-width:340px;">'+
+    '<div style="font-size:52px;margin-bottom:20px">🌙</div>'+
+    '<div style="font-size:22px;font-weight:700;color:#dde2f0;line-height:1.6;margin-bottom:28px;font-family:Rubik,sans-serif">'+msg+'</div>'+
+    '<div style="font-size:13px;color:#5a6280;font-family:monospace">לחצי להמשיך</div>'+
+    '</div>';
+  overlay.onclick = function(){ overlay.parentNode && overlay.parentNode.removeChild(overlay); };
+  document.body.appendChild(overlay);
+}
+
+function init(){
+  load();setNow();updateAge();tickClock();setInterval(tickClock,10000);
+  renderDashboard();
+  setTimeout(showLoveMessage, 300);
+}
+init();
+</script>
+</body>
+</html>
