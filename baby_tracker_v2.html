@@ -1981,11 +1981,17 @@ function buildHeatmap(containerId, mode) {
   // For each hour slot (0-23), count days baby was in this state
   const hourCounts = new Array(24).fill(0);
 
-  sortedDays.forEach(day => {
+  sortedDays.forEach((day, dayIdx) => {
     const evs = days[day].slice().sort((a,b)=>a.t.localeCompare(b.t));
+    // Also get previous day's events (for overnight sleep crossing midnight)
+    const prevDay = dayIdx > 0 ? sortedDays[dayIdx-1] : null;
+    const prevEvs = prevDay ? days[prevDay].slice().sort((a,b)=>a.t.localeCompare(b.t)) : [];
+
     for (let h = 0; h < 24; h++) {
       const midMin = h * 60 + 30;
       let state = null;
+
+      // Search current day first
       for (let i = evs.length - 1; i >= 0; i--) {
         const eMin = toMin(evs[i].t);
         if (eMin <= midMin && (evs[i].type === 'sleep' || evs[i].type === 'wake')) {
@@ -1993,6 +1999,17 @@ function buildHeatmap(containerId, mode) {
           break;
         }
       }
+
+      // If no event found in current day before this hour, check previous day's last event
+      if (state === null && prevEvs.length > 0) {
+        for (let i = prevEvs.length - 1; i >= 0; i--) {
+          if (prevEvs[i].type === 'sleep' || prevEvs[i].type === 'wake') {
+            state = prevEvs[i].type;
+            break;
+          }
+        }
+      }
+
       if (state === mode) hourCounts[h]++;
     }
   });
